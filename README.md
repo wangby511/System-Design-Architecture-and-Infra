@@ -9,3 +9,5 @@
 [Twitter Blog](https://blog.twitter.com/engineering/en_us)
 
 [Uber Engineering](https://eng.uber.com/)
+
+[Yelp Blog](https://engineeringblog.yelp.com/)

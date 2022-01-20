@@ -34,9 +34,9 @@ Fault tolerance
 
 ## Estimations
 
-A read-heavy system (compared to write)
+A read-heavy system (The read-to-write ratio of twitter is very high. It could be 1,000.)
 
-### DAU
+### DAU & QPS
 
 200 Million DAU
 
@@ -44,7 +44,7 @@ Tweets View (Read): 200M * 100 tweets ~= 20B per day => 230K QPS read
 
 100 Million tweets => 1200 QPS write
 
-Note: The traffic will be distributed unevenly throughout the day.
+Note: The traffic will be distributed unevenly throughout the day or in holidays. Peak 5000 QPS.
 
 ### Storage
 
@@ -76,35 +76,49 @@ E.g. get_tweets(api_dev_key, max_number_to_return, next_page_token)
 
 3 follow(api_dev_key, userId)
 
-## Basic Flows
+## Basic Flow - Post Tweet
 
-### Post Tweet
+A user posts a tweet to [**Tweets Server**]. The [**Tweets Server**] writes the data to [**Tweets Cache & DB**] as well as this user's [**User Profile Timeline Cache**].
 
-A user posts a tweet to [**Tweets Server**]. The [**Tweets Server**] will write the data to [**Tweets Cache**] as well as [**Tweets DB**].
+[**Tweets Feed Servers**] next will do a [**Fan Out On Write**] operation to add this tweet to all his/her follower's timeline cache entry list. This cache is called [**Home timeline Cache**]. (Pushing Mode with time complexity - Read O(1) Write O(N))
 
-[**Tweets Server**] next will do a [**Fan Out On Write**] operation to add this tweet to all his/her follower's timeline by [**Tweets Feed Servers**] as well as to [**Tweets Feed Cache**]. (Pushing Mode with time complexity - Read O(1) Write O(N))
+**Fan Out**: From one to many points. Add a user's tweet into all his/her follower's home timeline cache entry.
 
-If this user is a hot user/celebrity, [**Tweets Server**] next will do a [**Fan Out On Read**] operation to store this post in this celebrity's timeline own cache.
+However, if this user is a hot user or a celebrity (he/she has millions of followers), [**Tweets Server**] instead will choose the [**Fan Out On Read**] mode. In this situation, it just stores this post in this celebrity's home timeline cache and it does **not** write this post to all followers' home timeline.
 
-Also [**Tweets Server**] will call [**Notification Server**] if he/she has special follower(s).
+Also, [**Tweets Server**] will call [**Notification Server**] if he/she has special follower(s).
 
-### Read Timeline / Read Tweets feed
+## Basic Flow - Read Timeline / Read Tweets feed
+
+### 1 User / Profile Timeline
+
+The server fetches the data from [**User Profile Timeline Cache**] or [**Tweets Cache/DB**] to generate a timeline (list of tweets) for a specific person.
+
+### 2 Home Timeline
+
+~~**Simple steps**: get followers, get latest tweets, merge together and sort.~~
+
+**Details**:
 
 User makes request to [**Tweets Feed Servers**] and get all his/her tweets feed for the latest update.
 
-[**Tweets Feed Servers**] will fetch data(urls json) from [**Tweets Feed Cache**] and [**User Cache**], [**Tweets Cache**].
+[**Tweets Feed Servers**] will fetch data(urls json) from this user's home timeline cache.
 
-The tweets are mixed from non-celebrity and celebrity together in the runtime of user's request.
+Also the server also checks if this user has followed some celebrities by having a celebrity following table. Then the server also fetches the latest tweet data from each celebrity's profile timeline cache one by one.
 
-Construct the page by fetching images and videos from CDN by giving specific urls. And finally it is shown to the users in mobile terminals.
+Those tweets from non-celebrity and celebrity are mixed together and then returned as the whole list.
+
+The terminal app will construct/load the page by fetching images and videos from CDN by giving specific urls. And finally the whole page will be shown to the users in their terminal apps.
 
 ## Infra Graph
 
 ![](https://coursehunters.online/uploads/default/original/1X/e50becc8e0ae08ed68f93c6a186bb59081b40732.png)
 
-## Database Schema
+![](https://media.geeksforgeeks.org/wp-content/cdn-uploads/20200925115436/High-Level-Solution-for-Twitter-System-Design.png)
 
-### User DB
+## Database Schema & Storage
+
+### User DB (User Table)
 
 userId (Primary Key) | Name | Description | PhotoId | Email | DateOfBirth | CreationDate | ~~Tweets[] | favoriteTweets[]~~
 
@@ -120,11 +134,11 @@ PK -UserID: int
     LastLogin: datetime
 ```
 
-### TweetDB
+### TweetDB (Tweet Table)
 
 TweetId (Primary Key) | userId | Text | ImageIds[] | VideoId[] | Location | Timestamp | Hashtag | (originTweetId in Re-tweet)
 
-### Follow DB (if SQL)
+### Follow DB ((Follower Table)
 
 (userId1, userId2) (Primary Key)
 
@@ -161,17 +175,17 @@ Save tweet to DB/Cache
 
 Fetch all the followers that follow user A
 
-Inject this tweet into all the followers' queues/in-memory timelines
+Insert this tweet into all the followers' in-memory home timelines
 
-Finally, all the followers can see this tweet in their timelines.
-
-Not suitable for inactive users.
+The followers can just check their own home timeline to see this tweet.
 
 ### Celebrity / Fan Out On Read
 
-Generated during read time / On-demand mode
+Generated only during read time / On-demand mode
 
-Mixed with the tweets from celebrity in the runtime of user's request
+Fetch tweets from all the celebrities he/she has followed
+
+Merge those tweets from celebrities with other tweets in this user's home timeline
 
 For inactive users, this mode works better.
 
@@ -181,7 +195,7 @@ For inactive users, this mode works better.
 
 Cons:
 
-Traffic load will not be distributed. All new tweets will be going to one server and the remaining ones will be sitting idle.
+* Traffic load will not be distributed. All new tweets will be going to one server and the remaining ones will be sitting idle.
 
 ### 2 Sharding based on userId
 
@@ -203,7 +217,7 @@ Pros:
 
 Cons:
 
-* Read Timeline needs to query multiple servers.
+* Read Timeline needs to query multiple servers. which can result in higher latencies.
 
 Store hot tweets in cache in front of database servers.
 
@@ -213,11 +227,11 @@ Store hot tweets in cache in front of database servers.
 
 Pros:
 
-Reduce the latency for reading
+* Reduce the latency for reading since we do not have secondary index. It will be quite quick to find the latest Tweets.
 
 Cons:
 
-Read Timeline still needs to query multiple servers
+* We still need to query multiple servers for timeline generation.
 
 ## Cache
 
@@ -251,7 +265,7 @@ Server Internal error rate (500 error code)
 
 [2] <https://medium.com/@narengowda/system-design-for-twitter-e737284afc95>
 
-[3] <https://www.educative.io/courses/grokking-the-system-design-interview/xV9mMjj74gE>
+[3] <https://www.educative.io/courses/grokking-the-system-design-interview>
 
 [4] <https://www.bilibili.com/video/BV1Sf4y1e7wc?spm_id_from=333.999.0.0>
 
@@ -260,3 +274,9 @@ Server Internal error rate (500 error code)
 [6] <https://learnsystemdesign.blogspot.com/p/design-twitter-search.html>
 
 [7] <https://aaronice.gitbook.io/system-design/system-design-problems/design-twitter>
+
+[8] <https://www.geeksforgeeks.org/design-twitter-a-system-design-interview-question/>
+
+[9] <https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/twitter/README.md>
+
+[10] <https://www.youtube.com/watch?v=wYk0xPP_P_8>
