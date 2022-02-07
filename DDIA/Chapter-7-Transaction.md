@@ -86,7 +86,11 @@ Execute in parallel and if a lost updating is detected, abort the transaction an
 
 Write Skew - A transaction reads something, makes a decision and writes the decision to the database. By the time the write is made, the premise of the decision is no longer true.
 
-Phantom reads - A write in one transaction changes the result of a search query in another transaction.
+(Read the same object, update some of those different objects -> write skew.)
+
+(Read the same object, update the same object -> dirty write or lost update.)
+
+Phantom Read - A write in one transaction changes the result of a search query in another transaction.
 
 写倾斜：既不是脏写，也没有导致数据丢失。两次事务更新的是不同的对象（alice和bob的值班记录），写冲突并不那么直接。
 
