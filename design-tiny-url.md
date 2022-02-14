@@ -1,4 +1,4 @@
-# Design Tiny URL Service System
+# System Design - Tiny URL Service
 
 ## Functional requirements
 
@@ -89,7 +89,9 @@ or SHA-1, SHA-2, SHA-256.
 
 62^7 = 3.5 trillion
 
-Pros: It does not need a unique ID generator. The collision is possible and needs to be resolved.
+Pros: It does not need a unique ID generator.
+
+Cons: The collision is possible and needs to be resolved.
 
 ### Algorithm 2 - Generating shortURLs offline
 
@@ -101,7 +103,9 @@ Pros: It does not need a unique ID generator. The collision is possible and need
 
 3) Twitter / Snowflake ID - 64 bits. 1 + 41 timestamp + 10 machine numbers + 12 sequence. Then do the conversion based on 62 or 64. E.g. gk.link/a/3hcCxy
 
-This needs a unique ID generator But collision is not possible.
+Pros: Collision can be avoided.
+
+Cons: This needs an additional unique ID generator. Security problem because it is easy to figure out what is the next available shortURL.
 
 ## Flows (Steps)
 
