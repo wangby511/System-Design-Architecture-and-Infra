@@ -1,18 +1,18 @@
 # System Design - Tiny URL Service
 
-## Functional requirements
+## Functional Requirements
 
-1. URL shortening: given a long url, return a short url
+1. URL shortening - Given a long URL, return a short URL.
 
-2. URL redirecting: given a short url, redirect to the original long url
+2. URL redirecting - Given a short URL, redirect to the original long URL.
 
-3. The user can pick up a special alias.
+3. The user can pick up a special/custom alias for their short link URL.
 
-4. The user can define the specific expiry time for a short url. Or should we add expiry time for shortURL?
+4. The user can define the specific expiry time for a short URL. Or should we allow users to specify the expiration time for shortURL?
 
 5. Can one longURL have multiple/several shortURLs? Will the system return two different short URLs when given the same long URL? Based on if we need user authentication. To be discussed. **Should we deduplicate?**
 
-## Non-Functional requirements
+## Non-Functional Requirements
 
 High availability with fault tolerance, scalability in service.
 
@@ -75,7 +75,17 @@ Response parameters {
 
 ## Storage/DB
 
-<shortURL(6 Bytes per shortURL), longURL, (expiry time)>
+<shortURL(X Bytes per shortURL), longURL, (expiry time)>
+
+We should ask about the lifespan of the aliases and design a system that purges aliases past their expiration.
+
+### Estimation
+
+LongUrl 100 bytes + shortUrl 6 bytes + STATE 4 bytes = 110 bytes
+
+110 bytes * 3,000,000 = 330 MB per day
+
+330 MB * 365 = 120 GB per year
 
 ## Encoding actual longURL Algorithms
 
@@ -93,9 +103,17 @@ Pros: It does not need a unique ID generator.
 
 Cons: The collision is possible and needs to be resolved.
 
-### Algorithm 2 - Generating shortURLs offline
+### Algorithm 2 - Distributed Seq Unique ID Generator & Base 62 conversion
 
-### Algorithm 3 - Unique ID Generator & Base 62 conversion
+(Base62: a-z, A-Z, 0-9, 62 chars, 62^7), sharding: each node maintains a section of ids.
+
+This solution utilizes a cluster of id generators that reserve chunks of the id space from a central coordinator (e.g. ZooKeeper) and independently allocate IDs from their chunk, refreshing as necessary.
+
+Pros: Collision can be avoided.
+
+Cons: This needs an additional central coordinator. Also it has security problem because it is easy to figure out what is the next available shortURL (guessable/predictable).
+
+### Algorithm 3 - Others
 
 1) UUID. 32 16-bit characters. 16 Bytes.
 
@@ -103,11 +121,7 @@ Cons: The collision is possible and needs to be resolved.
 
 3) Twitter / Snowflake ID - 64 bits. 1 + 41 timestamp + 10 machine numbers + 12 sequence. Then do the conversion based on 62 or 64. E.g. gk.link/a/3hcCxy
 
-Pros: Collision can be avoided.
-
-Cons: This needs an additional unique ID generator. Security problem because it is easy to figure out what is the next available shortURL.
-
-## Flows (Steps)
+## Flows & Steps
 
 ### URL Shortening Steps
 
@@ -125,11 +139,13 @@ Cons: This needs an additional unique ID generator. Security problem because it 
 
 1 An user clicks a short url.
 
-2 The web server checks the validation, then checks the cache and returns the long url if it exists.
+2 The web server checks the validation (like **bloom filter**) first, then checks the cache and returns the long url if it exists.
 
-3 If not, check the bloom filter and fetch it from the database.
+3 If not, fetch it from the DB.
 
-4 The long url is returned to the user and does the redirection operation.
+4 Finally, if it’s present in the DB, issue an “HTTP 302 Redirect” status back to the browser, passing the stored URL in the “Location” field of the request. If that key is not present in our system, issue an “HTTP 404 Not Found” status or redirect the user back to the homepage.
+
+How is the click stats stored? - We can use some form of aggregation tier that accepts click stream data, aggregates it and writes back a persistent data store periodically, rather than choosing the write-back method to a data store on every click.
 
 ## Data Partition
 
@@ -138,14 +154,6 @@ Purpose: Scale out DB
 Split the DB based on hash function and consistency hashing mechanism.
 
 Consistency Hash: Consistent Hashing stores the data managed by a distributed system in a ring. Each node in the ring is assigned with a range of data.
-
-## Storage
-
-LongUrl 100 bytes + shortUrl 6 bytes + STATE 4 bytes = 110 bytes
-
-110 bytes * 3,000,000 = 330 MB / day
-
-330 MB * 365 = 120 GB / year
 
 ## Cache
 
@@ -167,7 +175,7 @@ Each region has a machine as the ID generator. A central data server maintains a
 
 Machine A (region A) can assign 0-999.
 
-Machine B (region B) can assign 1000-1999.
+Machine E (region E) can assign 1000-1999.
 
 Machine D (region D) can assign 2000-2999.
 
@@ -192,3 +200,5 @@ When a machine has used up its current range (1000 IDs), it is going to apply fo
 [4] System Design Interview. Alex Xu. Chapter 8. Design a url shortener.
 
 [5] <https://www.1point3acres.com/bbs/thread-829896-1-1.html>
+
+[6] <https://tianpan.co/notes/84-designing-a-url-shortener>
