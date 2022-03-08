@@ -146,6 +146,10 @@ Use relational-style building blocks to express a computation: joining datasets 
 
 In MapReduce, mappers are partitioned according to input file blocks. The output of mappers is re-partitioned, sorted and merged into a configurable number of reducer partitions. The purpose is to bring all the related data with the same hash key together.
 
+### Fault Tolerance
+
+If a task in a MapReduce job fails, it can simply be started again on another machine and the output of the failed task is discarded.
+
 ## Reference
 
 [1] <https://blog.csdn.net/weixin_43902592/article/details/105701289>
