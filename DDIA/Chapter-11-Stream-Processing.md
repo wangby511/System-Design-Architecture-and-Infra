@@ -68,11 +68,19 @@ Write to somewhere else, push to some users or produce one or more output stream
 
 A stream never ends so sort-merge joins can not be used. Fault-tolerance mechanisms must also change.
 
-**Complex event processing (CEP)** - allows to specify rules to search for certain patterns of events in a stream.
+### Uses of Stream Processing
 
-In stream analytics, the probabilistic algorithms are merely an optimization.
+Monitoring purposes like Fraud detection, Trading system, Manufacture system and Intelligence system.
 
-Distributed RPC - allows user queries to be farmed out to a set of nodes that also process event streams, then aggregated and sent back.
+* Complex event processing (CEP) - allows to specify rules to search for certain patterns of events in a stream.
+
+* Stream analytics - the probabilistic algorithms are merely an optimization.
+
+* Maintaining materialized views
+
+* Search on streams - a need to search for individual events based on complex criteria. E.g. ElasticSearch.
+
+* Message passing and RPC - Distributed RPC allows user queries to be farmed out to a set of nodes that also process event streams, then aggregated and sent back.
 
 ### Reasoning About Time
 
@@ -84,11 +92,11 @@ The timestamp on the events should be the time at which the user interaction occ
 
 Types of window:
 
-* Tumbling window - 10:03:00 to 10:03:59
+* Tumbling window - window of fixed length like 10:03:00 to 10:03:59
 
-* Hopping window - like 5 minute window starting from 10:03:00 or 10:04:00
+* Hopping window - window of fixed length but they can overlap. E.g. 5 minute window starting from 10:03:00 to 10:07:59 or 10:04:00 to 10:08:59
 
-* Sliding window - like 10:03:39 to 10:08:12
+* Sliding window - keep a buffer of events sorted by time and remove those old expired events. E.g. 10:03:39 to 10:08:12
 
 * Session window - a user is active during some period of time. No fixed duration.
 
@@ -106,12 +114,12 @@ Types of window:
 
 Since a stream processing is a long-running and produces output continuously, we can not simply discard all outputs.
 
-* micro-batching - break down into small blocks.
+* Micro-batching - break down stream into small blocks(tumbling window) and treat each block as a minimal batch.
 
-* checkpoint - generate rolling checkpoints of state and write them to durable storage.
+* Checkpoint - generate rolling checkpoints of state and write them to durable storage.
 
-* atomic commit - process several input messages within a single transaction
+* Atomic commit revisit - process several input messages within a single transaction
 
-* idempotence - an effective way of achieving exactly-once semantics.
+* Idempotence - an idempotent operation is one that you can perform multiple times, and it has the same effect as if you performed it only once. It is an effective way of achieving exactly-once semantics.
 
-* keep state local to the stream processor and replicate it periodically.
+* Rebuild state after a failure - store the state in another machine for replication, keep state local to the stream processor and replicate it periodically, rebuilt from the input streams corresponding to the window. Trade-off among disk access latency, network delay and network bandwidth.
