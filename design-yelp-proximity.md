@@ -1,18 +1,22 @@
 # System Design - Yelp or Proximity Service
 
+FIRST CREATED 2021/01/17
+
 ## Functional requirements
 
-Given a location, a user can search all the nearby places within a give radius.
+Given a location, a user can search all the nearby places within a given radius.
 
 A user can add his/her favorite places.
 
-A user can post feedback/review/comment to a place: rating(required) + text/pictures(optional)
+A user can post feedback/review/comment to a place: rating(required) + text/pictures(optional).
+
+Business owners can add, delete or update a business place and it will be effective in the next day (OR in nearly real time).
 
 ## Non-Functional requirements
 
 High Availability - Our search service should be highly available.
 
-Scalable - There will be peak demand on the Holiday season or certain tourist attractions.
+High Scalability - The system can handle the spike in traffic during peak hours or holidays.
 
 Low Latency - Users should be able to access information as fast as possible. A real-time search experience with minimum latency.
 
@@ -36,6 +40,8 @@ Category 1 byte
 
 Description 512 bytes
 
+Address 32 bytes
+
 TotalRating 1 byte
 
 ### Business Profile DB
@@ -54,19 +60,39 @@ ReviewID (Primary Key) | LocationID | UserId | Text | Rating
 
 ## APIs Design
 
-### 1. Function1(Core): GET /search
+### 1. Function1(Core): GET /v1/search/nearby
 
 parameters: keyword, radius, category(optional), max_return(optional), sortMode(optional), filter(optional), next_token(optional)
 
-return: A JSON containing information about a list of popular places matching the search query. Each result entry will have the place name, address, category, rating and thumbnail image.
+return: A JSON containing information about a list of popular places matching the search query. Each entry contains the place name, address, category, star rating and thumbnail image.
 
-### Function2: POST/add  DELETE/remove (to/from favorite list)
+Also for specific location/business, we have CRUD APIs:
+
+GET /v1/businesses/:id
+
+POST /v1/businesses
+
+PUT /v1/businesses/:id
+
+DELETE /v1/businesses/:id
+
+### Function2: POST/add  DELETE/remove (to/from customers' favorite list)
 
 parameters: LocationID
 
-### Function3: POST/add
+### Function3: POST/add (customer' reviews)
 
 parameters: LocationID, Rating, Review text(optional), media_urls(optional)
+
+## Location-based Service & Business Service
+
+### 1 Location-based Service
+
+Find the nearby businesses for a given radius and location with high QPS. Read heavy and no write. Also it is stateless and easy to scale horizontally.
+
+### 2 Business Service
+
+Business owners create, update or delete a location. The QPS is not high.
 
 ## Basic System Design and Algorithm
 
@@ -84,6 +110,8 @@ Not completely accurate and not efficient.
 
 ### Grids
 
+The basic idea is to divide the world into small grids. One grid could have multiple locations and each location belongs to one grid.
+
 GridID is a four bytes number. Based on a given location and radius, we can find all the neighboring grids and then query these grids to find nearby places.
 
 We have 20 million grids and 500 million places. Since LocationID is 8 bytes, we would need about 4GB memory (ignoring hash table overhead) to store the index in the memory:
@@ -92,23 +120,29 @@ We have 20 million grids and 500 million places. Since LocationID is 8 bytes, we
 
 ### QuadTree
 
-A tree in which each node has 4 children nodes. Starting from the root node which represents the whole world, we keep splitting each child node until there are no nodes left with more than 500 locations.
+A tree which is commonly used to partition a 2-dimensional space by recursively subdividing it into 4 sub-grids. Therefore, each non-leaf node in the tree has 4 children nodes. Starting from the root node which represents the whole world, we keep splitting each node until there are no nodes left with a certain number of locations.
 
-All information of places are stored in leaf nodes. (A node represents a grid with no more than 500 places).
+All information of places are stored in leaf nodes. (A node represents a grid with no more than 100 places, for example).
 
 With double linked pointer to other leaf nodes and parent pointer to parent node, we can find neighboring grids of a given grid.
 
-### Workflow
+QuadTree's Workflow:
 
-First we find the node that contains the user’s location.
+* First we find the node that contains the user’s location.
 
-If that node has enough desired places, we can return them to the user.
+* Start searching from the root and traverse the tree. If the leaf node has enough number of desired places, we can filter and then return them to the user.
 
-If not, we will keep expanding to the neighboring nodes (either through the parent pointers or doubly linked list) until either we find enough required number of places within the maximum radius.
+* If not, we will keep expanding to the neighboring nodes (either through the parent pointers or doubly linked list) until either we find enough required number of places within the maximum radius.
 
-Storage 24 Bytes x 500M = 12 GB (potentially)
+**Note:**
+
+The QuadTree is an **in-memory** data structure and it is not a database solution.
+
+Although the QuadTree index does not take much memory and can be fit in one server, we should use multiple servers to handle/spread the traffic.
 
 ## GeoHash
+
+The basic idea is to reduce the two-dimensional longitude and latitude data into a one-dimensional string of letters and digits. It recursively divide the world into smaller and smaller places by adding additional bit.
 
 GeoHash uses a string to represent a zone or location by splitting the map into grids. The world is split into 4 x 8 = 32 grids initially with a character representing each grid. Then we do further splitting in each grid by continually using **Z/N-order curve** to maintain locality and appending one more character into the GeoHash string. (Do 4 *8, then 8* 4, then 4 *8, ...)
 
@@ -118,15 +152,43 @@ The longer a GeoHash string is, the more precise location it demonstrates. E.g. 
 
 length: 6 -> 1.2 km x 600m, the error delta distance is 500 meters. length 8 -> the error delta distance is only 7 meters. 8 bytes.
 
-### Use GeoHash
+Radius -> GeoHash length
 
-Calculate a user's GeoHash string based on his/her geo location (latitude and longitude).
+0.5 km -> 6
 
-If the grids are too small, we could search too many number of grids. If the grids are too big, the search result could contain those unnecessary far-away locations. Usually we search for up to nine (9) grids in total OR also we can include some neighbor grids, e.g. GeoHash6 >= "bc1234" and GeoHash6 <= "bc123s".
+2 km -> 5
+
+5 km -> 4
+
+Steps of using GeoHash:
+
+* Calculate a user's GeoHash string based on his/her geo location (latitude and longitude).
+
+* Find the corresponding GeoHash grid which matches the user. Filter the locations in this grid and return.
+
+If the size of grid is too small, we could search too many number of grids. If the grids are too big, the search result could contain those unnecessary far-away locations. Usually we search for up to nine (9) grids in total OR also we can include some neighbor grids, e.g. GeoHash6 >= "bc1234" and GeoHash6 <= "bc123s".
+
+**Note**:
+
+There are boundary issues/corner cases in using GeoHash: Two places can be very close but they have different GeoHash prefix name.
+
+### Google S2
+
+It is still an in-memory solution. It maps a sphere to a ID index based on the Hilbert curve (a space-filling curve).
+
+S2 is great for geofencing because it can cover arbitrary areas with varying levels.
+
+Conclusion: GeoHash and QuadTree are preferred.
 
 ## Data Partition
 
-### 1. By region or zip-code
+There are two tables: Business Table and Geo-spatial Index Table.
+
+### Business Table
+
+For Business Table, we simply do sharding based on Business ID base on the three options as below.
+
+1.By region or zip-code
 
 Cons:
 
@@ -134,17 +196,23 @@ The issue of hot places - One of the server in the cluster receive too many requ
 
 The issue of unevenly distributed data - Some regions can end up storing a lot of places compared to others.
 
-### 2. By LocationId
+2.By BusinessID
 
 This could make a request querying too many shard servers.
 
  To find places near a location, we have to query all servers and each server will return a set of nearby places. A centralized server will aggregate these results to return them to the user. May not be efficient.
 
-### 3. By Geo-hash/Google S2
+3.By Geo-hash/Google S2
 
 To avoid the issue of hot shard, try to make that cells are continuous in one shard and adjust the number of cells in one shard by the number of places.
 
 Geo-hash is widely adopted in the open source community (e.g. ElasticSearch, MongoDB, and others).
+
+### Geo-spatial Index Table
+
+<geohash, business_id> instead of <geohash, list_of_business_ids>
+
+It is small enough to fit in one server, unnecessary to shard. Scaling through replicas is recommended.
 
 ## Replication
 
@@ -152,7 +220,13 @@ Primary QuadTree server serves write traffic and applies to all other replicas (
 
 ## Cache
 
-Between backend databases and application servers, we can store all data for hot places.
+Between backend databases and application servers, we can store all businesses in a hot place or all detailed data for a hot business.
+
+<geohash, list_of_business_ids>
+
+and
+
+<business_id, Business Object>
 
 Least Recently Used (LRU) seems to be suitable in this case.
 
