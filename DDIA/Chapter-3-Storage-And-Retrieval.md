@@ -6,15 +6,15 @@ select a storage engine - mainly two families of storage engines: log-structured
 
 ## Data Structures That Power Your Database
 
-log - an append-only sequence of records
+**log** - an append-only sequence of records
 
-index - additional structure that is derived from the primary data which affects the performance of queries, not affecting the contents of the database. But that is a trade-off: we need to have well-chosen indexes.
+**index** - additional structure that is derived from the primary data which affects the performance of queries but not affecting the contents of the database. There is a trade-off: well-chosen indexes speed up read queries but every indexes slow down writes.
 
 ### Hash Indexes
 
-avoid running our of disk space - breaking the log into segments of a certain size and closing a segment file when it reaches a certain size.
+To avoid running our of disk space - breaking the log into segments of a certain size and closing a segment file when it reaches a certain size.
 
-compaction & merge - perform **compaction** on those segment files by only keeping the most recent update for each key. We can also merge those several segments together at the same time of performing the compaction in the background thread.
+**compaction & merge** - perform compaction on those segment files by only keeping the most recent update for each key. We can also merge those several segments together at the same time of performing the compaction by using a background thread.
 
 * File format - CSV is not the best format for a log.
 
@@ -109,3 +109,41 @@ memory database - The disk is used only as an append-only log for durability and
 Memcached, caching use only (in-memory key-value stores). Redis offers a database-like interface to various data structures such as priority queues and sets, which is easy to implement in memory.
 
 ## Transaction Processing or Analytics?
+
+**online transaction processing (OLTP)** - access pattern of small number of records per query, fetched by key. Typically user-facing but with a huge volume of requests.
+
+**online analytic processing (OLAP)** - aggregate over large number of records. Primarily used by business analysts. Disk bandwidth is always the bandwidth.
+
+**data warehouse** - a separate database to run the analytics.
+
+### Data Warehousing
+
+**Extract-Transform-Load (ETL)** - The process of getting data into warehouse. Data is extracted from OLTP databases (using either a periodic data dump or a continuous stream of updates), transformed into an analysis-friendly schema, cleaned up and then loaded into the data warehouse. The data warehouse can be optimized for analytic access patterns.
+
+The data model is most commonly **relational** in a data warehouse.
+
+In the **fact-table**, each row represents a customer's purchase of a product, e.g.
+
+**dimension table** - other tables which the foreign key references to.
+
+**snowflake schema** - dimensions are further broken down into sub-dimensions.
+
+## Column-Oriented Storage
+
+row-oriented storage engine VS. column-oriented storage
+
+### Column Compression
+
+bitmap coding - data compression in a column
+
+### Sort Order in Column Storage
+
+Having sort keys can benefit data compression effect.
+
+### Writing to Column-Oriented Storage
+
+LSM Trees: All writes first go to an in-memory store (a sorted structure) and then prepared for writing to disk.
+
+### Aggregation: Data Cubes and Materialized Views
+
+Pre-compute the aggregation results among different dimensions and cache them as a **data cube or OLAP cube**. E.g. two dimensions - date_key and product_sk.

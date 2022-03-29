@@ -10,7 +10,7 @@ A user can add his/her favorite places.
 
 A user can post feedback/review/comment to a place: rating(required) + text/pictures(optional).
 
-Business owners can add, delete or update a business place and it will be effective in the next day (OR in nearly real time).
+Business owners can add, delete or update a business place and it will be effective in the next day (OR in nearly real time), but no frequent updates.
 
 ## Non-Functional requirements
 
@@ -120,17 +120,17 @@ We have 20 million grids and 500 million places. Since LocationID is 8 bytes, we
 
 ### QuadTree
 
-A tree which is commonly used to partition a 2-dimensional space by recursively subdividing it into 4 sub-grids. Therefore, each non-leaf node in the tree has 4 children nodes. Starting from the root node which represents the whole world, we keep splitting each node until there are no nodes left with a certain number of locations.
+A tree which is commonly used to partition a 2-dimensional space by recursively subdividing it into 4 sub-grids. Therefore, each non-leaf node in the tree has 4 children nodes in order (up left, up right, down left, down right). Starting from the root node which represents the whole world, we keep splitting each node until there are no nodes left with > 100 locations.
 
 All information of places are stored in leaf nodes. (A node represents a grid with no more than 100 places, for example).
 
-With double linked pointer to other leaf nodes and parent pointer to parent node, we can find neighboring grids of a given grid.
+Use double linked pointer to other leaf nodes and parent pointer to parent node, we can find neighboring grids of a given grid.
 
-QuadTree's Workflow:
+**QuadTree's Workflow**: Find the node that contains the user’s location:
 
-* First we find the node that contains the user’s location.
+* Start from the root node and search downward the tree to the child node containing the desired location.
 
-* Start searching from the root and traverse the tree. If the leaf node has enough number of desired places, we can filter and then return them to the user.
+* If the leaf node has enough number of desired places, we can filter and then return them to the user.
 
 * If not, we will keep expanding to the neighboring nodes (either through the parent pointers or doubly linked list) until either we find enough required number of places within the maximum radius.
 
@@ -186,9 +186,9 @@ There are two tables: Business Table and Geo-spatial Index Table.
 
 ### Business Table
 
-For Business Table, we simply do sharding based on Business ID base on the three options as below.
+For Business Table, we simply do sharding based on Location/Business ID base on the three options as below.
 
-1.By region or zip-code
+1.**By regions** or zip-code
 
 Cons:
 
@@ -196,7 +196,7 @@ The issue of hot places - One of the server in the cluster receive too many requ
 
 The issue of unevenly distributed data - Some regions can end up storing a lot of places compared to others.
 
-2.By BusinessID
+2.**By LocationID**
 
 This could make a request querying too many shard servers.
 
@@ -214,9 +214,17 @@ Geo-hash is widely adopted in the open source community (e.g. ElasticSearch, Mon
 
 It is small enough to fit in one server, unnecessary to shard. Scaling through replicas is recommended.
 
-## Replication
+## Replication And Fault Tolerance
+
+Primary-Secondary Configuration.
 
 Primary QuadTree server serves write traffic and applies to all other replicas (secondaries), which only serve read traffic.
+
+If both primary and secondary machines die?
+
+* Add a new server and rebuild the same (sub) QuadTree in its memory.
+
+* Brute force to iterate the whole DB or maintain a Reverse Index (mapping locationIDs to which QuadTree servers).
 
 ## Cache
 
@@ -234,7 +242,7 @@ Least Recently Used (LRU) seems to be suitable in this case.
 
 Round Robin (distributed equally)
 
-More intelligent LB can also take traffic/load/server status as consideration by periodically querying backend server and then adjust the traffic volumes.
+More intelligent LB can also take traffic/load/server status/latency as consideration by periodically querying backend server and then adjust the traffic volumes.
 
 ## Ranking
 
