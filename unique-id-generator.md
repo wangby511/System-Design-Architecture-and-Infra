@@ -1,8 +1,8 @@
-# Unique ID - Twitter Snowflake Approach
+# System Design - Unique ID Generator
 
-Twitter creates its own random ID generator called **Twitter Snowflake** to create unique IDs for tweets, users, messages and all other objects that need identification.
+Auto-increment does not work in a distributed environment.
 
-This is a 64-bit unique ID generator that was inspired by the above similar service.
+Clarifications: ID increment by one? only contain numerical values? number of generations per second?
 
 ## Functional Requirements
 
@@ -16,7 +16,15 @@ This is a 64-bit unique ID generator that was inspired by the above similar serv
 
 * The system should be able to scale to accommodate a large number of requests each second.
 
+**Highly available** - it is a mission-critical system.
+
 ## Solution
+
+Twitter Snowflake Approach
+
+Twitter creates its own random ID generator called **Twitter Snowflake** to create unique IDs for tweets, users, messages and all other objects that need identification.
+
+This is a 64-bit unique ID generator that was inspired by the above similar service.
 
 1. Epoch timestamp in millisecond precision - 41 bits (gives us 69 years with a custom epoch)
 2. Configured machine id - 10 bits (gives us up to 1024 machines)
@@ -48,11 +56,17 @@ new request -> (LB) -> (App Server) <-> (ID Generator)
 
 (App Server) <-> (Database)
 
-## Others
+## Other Approaches
 
 MongoDB’s ObjectId is 12 bytes long and encodes the timestamp as the first component.
 
-UUID is 128 bits long and it is completely random without natural sort.
+UUID is 128 bits long and it is completely random without natural sort by time/date.
+
+Ticket Server - The idea is to use a centralized auto-increment feature in a single database server (Ticket Server). It could have the single point of failure if the ticket server is only single.
+
+## Others
+
+Clock Synchronization - need Network Time Protocol to have the same clock in multi-machine scenarios.
 
 ## Reference
 
@@ -65,3 +79,5 @@ UUID is 128 bits long and it is completely random without natural sort.
 [4] <https://aaronice.gitbook.io/system-design/architecture-toolbox/id-generator>
 
 [5] <https://medium.com/double-pointer/system-design-interview-scalable-unique-id-generator-twitter-snowflake-or-a-similar-service-18af22d74343>
+
+[6] System Design Interview. Alex Xu. Chapter 7. Design A Unique ID Generator in Distributed Systems.
