@@ -81,3 +81,89 @@ Allow more than one node to accept writes - called **multi-leader** configuratio
 ### Use Cases for Multi-Leader Configuration
 
 E.g. we have a leader in each data center, and each data center's leader replicates its changes to the leaders in other data centers.
+
+Performance - Every write can be processed in the local data center and is replicated synchronously to other data centers.
+
+Tolerance of outages - each data center can operate independently of the others, and replication catches up when the failed data center comes back online.
+
+Collaborative writing - allow several people to edit a document simultaneously.
+
+### Handling Write Conflicts
+
+We need synchronous conflict detection, which means we should use single-leader replication.
+
+Ways of achieving convergent conflict resolution:
+
+1 Give each write a unique ID. **last write wins (LWW)**.
+
+2 Give each replica a unique ID.
+
+3 Somehow merge the values together.
+
+4 Record the conflict in an explicit data structure that preserves all the information.
+
+Custom conflict resolution logic - **On write** (the handler is running in a background process) or **On read** (let the user decide in the next time).
+
+Automatic Conflict Resolution:
+
+* Conflict-free replicated data types (CRDTs)
+
+* Mergeable persistent data structures
+
+* Operational transformation
+
+### Multi-Leader Replication Topologies
+
+all-to-all topology, star topology, circular topology.
+
+Figure 5-9: With multi-leader replication, writes may arrive in the wrong order at some replicas.
+
+## Leaderless Replication
+
+The client directly sends its writes to several replicas, while in others, a coordinator node handles that.
+
+### Write to the Database When a Node Is Down
+
+The replication system needs to make sure that eventually all the data is copied to every replica.
+
+Two ways of approaches:
+
+* Read repair - writes the newer value back to the replica when a value is read by application
+
+* Anti-entropy process - a background process
+
+Quorums for reading and writing - w, r are the minimum number of votes required for the read or write to be valid. The requests don't have to wait for all n nodes to respond - they can return when w or r nodes have responded.
+
+If w + r > n, at least one node of the r replicas you read from must have seen the most recent successful write. **at least one overlap**
+
+Some nodes are unavailable due to: the node is down, disk error or network interruption.
+
+### Limitations of Quorum Consistency
+
+There is no direct way of measuring the staleness measurements.
+
+### Sloppy Quorums and Hinted Handoff
+
+**sloppy quorum** - writes and reads still require w and r successful responses, but those may include nodes that are not among the designated n "home" nodes for a value. It is only an assurance of durability and it does not guarantee that we can read the latest value.
+
+n can describes the number of replicas within one data center. Cross data center replication between database clusters happens asynchronously.
+
+### Detecting Concurrent Writes
+
+Concurrent writes in a Dynamo-style data store - there is no well-defined ordering.
+
+**last write wins(LWW)** - attach a timestamp to each write, pick the biggest timestamp as the most "recent" and discard any writes with an earlier timestamp. If data loss is not acceptable, it is a poor choice.
+
+A deletion marker is known as **a tombstone**.
+
+## Summary
+
+Single-leader replication, Multi-leader replication and Leaderless replication.
+
+Replication can be synchronous or asynchronous.
+
+Read-after-write consistency - Users should always see data that they submitted themselves.
+
+Monotonic reads - After users have seen the data at one point in time, they shouldn't later see the older data.
+
+Consistent prefix reads - Users should see the data in a state that makes casual sense.

@@ -137,7 +137,7 @@ Atomic commit - All nodes agree on the outcome of the transaction, either all co
 
 Multiple nodes are involved in a transaction - A node must only commit once it is certain that all other nodes in the transaction are also going to commit.
 
-**Two-Phase Commit** - an algorithm for achieving atomic transaction commit across multiple nodes. To ensure that all nodes commit or all nodes abort.
+**Two-Phase Commit (2PC)** - an algorithm for achieving atomic transaction commit across multiple nodes. To ensure that all nodes commit or all nodes abort.
 
 Phase 1 - The coordinator (transaction manager) sends out a request request to each of nodes, asking them whether they are able to commit.
 
@@ -145,7 +145,9 @@ Phase 2 - The coordinator sends commit request or abort request. At the same tim
 
 ![img](https://cdn.jsdelivr.net/gh/lichuang/lichuang.github.io/media/imgs/20190406-ddia-chapter09-consistency-and-consensus/9-9.jpg)
 
-If the coordinator crashes before it sends each participant commit/abort request, that state is called **in doubt or uncertain**. They can do nothing but stuck waiting until the coordinator recovers and reads the transaction log.
+Two crucial "points of no return": 1. When a participant votes yes, it promises that it will definitely be able to commit later (although the coordinator may still choose to abort). 2. Once the coordinator decides, the decision is irrevocable.
+
+**Coordinator Failure** - If the coordinator crashes before it sends each participant commit/abort request, that state is called **in doubt or uncertain**. They can do nothing but stuck waiting until the coordinator recovers and reads the transaction log. So the only way is waiting for the coordinator to recover. And the coordinator must write its commit or abort decision to a transaction log on disk before sending to participants. Any transactions that do not have a commit record are aborted.
 
 The commit point of 2PC comes down to a regular single-node atomic commit on the coordinator.
 

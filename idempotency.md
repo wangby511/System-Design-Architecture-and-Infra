@@ -14,20 +14,32 @@ Save the resulting status code and body of the first request made for any given 
 
 All POST requests accept idempotency keys. Sending idempotency keys in GET and DELETE requests has no effect and should be avoided, as these requests are idempotent by definition. (The potential problem with DELETE, which if successful would normally return a 200 (OK) or 204 (No Content), will often return a 404 (Not Found) on subsequent calls.)
 
-Retry with exponential backoff and random jitter(Avoid thundering herd problem).
+Retry with exponential back-off and random jitter to avoid thundering herd problem.
+
+## Retry Mechanism
+
+In RESTful APIs, the PUT and DELETE verbs are idempotent.
+
+However, POST may cause "double-charge" problem in payment service. So we use a idempotency key to identify the request.
+
+* If the failure happens before the server, then there is a retry, and the server will see it for the first time, and process it normally.
+
+* If the failure happens in the server, then ACID database will guarantee the transaction by the idempotency key.
+
+* If the failure happens after the server’s response, then client retries. And the server simply replies with a cached result of the previous operation.
 
 ## Reference
 
-<https://stripe.com/docs/idempotency>
+[1] <https://stripe.com/docs/idempotency>
 
-<https://stripe.com/docs/api/idempotent_requests>
+[2] <https://stripe.com/docs/api/idempotent_requests>
 
-<https://www.youtube.com/watch?v=nnMqSQtSZUQ&list=PLy1nL-pvL2M50RmP6ie-gdcSnfOuQCRYk&index=7>
+[3] <https://www.youtube.com/watch?v=nnMqSQtSZUQ&list=PLy1nL-pvL2M50RmP6ie-gdcSnfOuQCRYk&index=7>
 
-<https://tianpan.co/notes/43-how-to-design-robust-and-predictable-apis-with-idempotency>
+[4] <https://tianpan.co/notes/43-how-to-design-robust-and-predictable-apis-with-idempotency>
 
 ## Interview Example
 
-<https://www.1point3acres.com/bbs/thread-748060-1-1.html>
+[1] <https://www.1point3acres.com/bbs/thread-748060-1-1.html>
 
-<https://www.1point3acres.com/bbs/thread-814188-1-1.html>
+[2] <https://www.1point3acres.com/bbs/thread-814188-1-1.html>
