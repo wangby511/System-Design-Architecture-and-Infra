@@ -24,7 +24,7 @@ Summary: Cache will synchronously (write through) or asynchronously (write behin
 
 ### Read-aside
 
-Application requests data from cache. If the data is not available, application then gets data from backing store and writes it to the cache for future requests.
+Application requests data from cache. If the data is not available, application then gets data from backing store and also writes it to the cache for future requests.
 
 ### Write
 
@@ -37,6 +37,8 @@ LRU(Least Recently Used) - check time, and evict the most recently used entries 
 LFU(Least Frequently Used) - check frequency, and evict the most frequently used entries and keep the most frequently used ones.
 
 ARC(Adaptive replacement cache) - it has a better performance than LRU. It is achieved by keeping both the most frequently and frequently used entries, as well as a history for eviction (keeping MRU+MFU+eviction history).
+
+![image](https://media-exp1.licdn.com/dms/image/C5622AQF5TD73OvsLOw/feedshare-shrink_800/0/1646325427703?e=2147483647&v=beta&t=yyRtGO7RbciAsL-o1pUnohWTRaEiN4xnJ2HBRzay-ho)
 
 ## Reference
 
