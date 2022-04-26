@@ -8,4 +8,12 @@ Memcached is, by design, very simple to set up and use. If you had an extremely 
 
 When you restart memcached your data is gone.
 
-Memcached is multithreaded.
+Memcached is multi-threaded. Memcached implements a multi-threaded architecture by utilizing multiple cores. Therefore, for storing larger datasets, Memcached can perform better than Redis.
+
+Another benefit of Memcached's multi-threaded architecture is its high scalability, achieved by utilizing multiple computational resources. You can handle more operations by scaling up compute capacity.
+
+## Reference
+
+[1] <https://people.cs.uchicago.edu/~junchenj/34702/slides/34702-MemCache.pdf>
+
+[2] <https://www.baeldung.com/memcached-vs-redis>

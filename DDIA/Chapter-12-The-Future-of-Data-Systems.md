@@ -14,13 +14,15 @@ Change Data Capture (CDC) (page 454) - Replicating changes from a database to so
 
 Total Order Broadcast (page 384) & Consensus - We want a mechanism for multiple nodes to share the work of ordering the events.
 
-**Atomic Commit and Two-Phase Commit 2PC** (page 354) - provides atomic commit in a distributed database. To ensure that either all nodes commit or all nodes abort. It includes write data, prepare and commit or abort those three phases.
+**Atomic Commit and Two-Phase Commit 2PC** (page 354) - provides **atomic commit in a distributed database**. Multiple nodes are involved in a transaction. To ensure that either all nodes commit or all nodes abort. It includes three phases: write data, prepare and commit or abort.
 
-Two-Phase Locking 2PL (page 257) - provides serializable isolation.
+**Two-Phase Locking 2PL** (page 257) - provides serializable isolation. The lock can be either in shared mode (for read) or exclusive mode (for write). After a transaction has acquired the lock, it must continue to hold the lock until the end of the transaction(commit or abort).
 
-Linearizability (page 324)
+**Write Skew** (page 246) - Two transactions read the same objects, and then update some of those objects. Different transactions may update different objects. The **serializable isolation** can prevent this.
 
-Read your own writes (page 162)
+Linearizability (page 324) - It makes the database behave like a variable in a single-threaded program.
+
+Read your own writes (page 162) - Let the user submit some data and then view what they have submitted by refreshing the page.
 
 Ordering events to capture causality:
 

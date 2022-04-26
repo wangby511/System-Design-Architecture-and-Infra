@@ -13,9 +13,11 @@ Convergence - eventually consistency. If you write a value to a database and wai
 
 ## Linearizability - 可线性化
 
-Linearizability - also called atomic consistency, strong consistency. It makes a system look like it has one copy of the data even through there are maybe multiple replicas behind it in reality.
+**Linearizability** - also called atomic consistency, strong consistency. It makes a system look like it has one copy of the data even through there are maybe multiple replicas behind it in reality.
 
-可线性化(Linearizability)，也被称为原子一致性（atomic consistency）、强一致性（strong consistency），其基本的思想是让一个系统看起来好像只有一个数据副本，且所有的操作都是原子的。
+可线性化(Linearizability)，也被称为原子一致性（atomic consistency）、强一致性（strong consistency），可线性化的基本思想是让一个系统看起来好像只有一个数据副本，而且所有的操作都是原子的，有了这个保证，应用程序就不需要关心系统内部的多个副本。
+
+在一个可线性化的系统中，一旦某个客户端成功提交写请求，所有的客户端读请求一定能看到刚刚写入的值。而不是过期的缓存。但并不要求将操作组合到事务中，因此无法避免写倾斜等问题。
 
 There must be some point in time (between the start and end of the write operation) at which the value of x automatically flips from 0 to 1 for example. If one client's read returns 1 (the new value), then all subsequent reads must also return the new value. We should not see a value flip back and forth several times.
 
@@ -101,13 +103,21 @@ Linearizability implies causality.
 
 It can come from a logical clock, an algorithm to generate a sequence of numbers to identify operations, instead of a time-of-day clock. So we can create sequence numbers in a total order that is consistent with causality, especially for the single-leader replication mode. However, multi-leader or leaderless database can not guarantee consistent causality.
 
+In a database with single-leader replication, the replication log defines a total order of write operations that is consistent with causality. The leader can simply increment a counter for each operation and then assign a monotonically sequence number to each operation in the replication log. We can guarantee that the state of the followers is always consistent.
+
+在主从复制数据库中，复制日志定义了与因果关系一致的写操作全序关系。主节点可以简单地为每个操作递增某个计数器，从而为复制日志中的每个操作赋值一个单调递增的序列号。从节点按照复制日志的顺序来写，结果一定满足因果一致性。
+
 **Lamport timestamp** - (counter, nodeId) provides a total ordering consistent with causality.
 
 Cons: We know the total order of operations **only after** we have collected all the operations so we can not make a right-now decision. (E.g. create a unique username.)
 
+每个节点都有一个唯一的标识符，且每个节点都有一个计数器来记录各自已处理的请求总数。Lamport时间戳是一个值对（计数器，节点ID）。两个节点可能会有相同的计数器值，但时间戳中还包含节点ID信息，因此可以确保每个时间戳都是唯一的。
+
+In order to implement something like a uniqueness constraint for user names, we have to both maintain a total ordering of operations and also know when that order is finalized.
+
 ### Total Order Broadcast - 全序关系广播
 
-total order broadcast OR atomic broadcast
+**total order broadcast** or atomic broadcast. It is usually described as a protocol for exchanging messages between nodes with two safety properties satisfied:
 
 * Reliable delivery - no messages are lost.
 
@@ -121,9 +131,13 @@ Every replica processes the same writes in the same order with the leader.
 
 全序关系广播指节点间交换消息的某种协议，要求满足以下两个基本安全属性：
 
-可靠发送：没有消息丢失，如果消息发送到了一个节点，也必须要发送到其他节点。
+可靠发送：没有消息丢失，如果消息发送到了一个节点，也必须要发送到其他节点。严格有序：消息总是以相同的顺序发送给每个节点。
 
-严格有序：消息总是以相同的顺序发送给每个节点。
+一旦消息发出，此时顺序就确定下来了。节点不允许往已经存在的消息序列中插入消息，只能往后追加，因此可以将全序广播看作是一个记录日志的过程：所有节点都在异步记录一个全局顺序一致的日志。
+
+在single-leader架构中，只有一个leader能接受写操作，从而能够保证所有写操作都是有序的，进而保证所有副本都是有序的。这意味着single-leader架构本身就具有全序传递的特性，只要在此基础上解决了可靠传输问题，就能实现全序广播。 常规的single-leader架构需要在启动时，人为指定一个leader节点，一旦这个节点失效，整个系统将会陷入一个不可用的状态，直到人工介入指定一个新的leader。这对系统的可用性无疑会造成严重的影响。
+
+为了实现自动灾备auto-failover，系统本身需要支持leader选举功能：当leader 失效时，从健康的follower中选择一个新的leader，继续对外提供服务。在此类选举场景中，不可避免的会用到布式一致性算法distributed consensus algorithm。
 
 ## Distributed Transactions and Consensus - 共识
 

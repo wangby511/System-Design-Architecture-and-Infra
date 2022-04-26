@@ -52,23 +52,33 @@ The follower connects to the leader and requests all the data changes.
 
 Leader-based replication requires all writes to go through a single node, but read-only queries can go to any replica.
 
-If we take synchronous-replication mode, a single node failure or network outage would make the entire system unavailable for writing. But if we take asynchronous-replication mode, we may see outdated information if the follower has fallen behind (called **replication lag**).
+If we take synchronous-replication mode, a single node failure or network outage would make the entire system unavailable for writing.
+
+But if we take asynchronous-replication mode, we may see outdated information if the follower has fallen behind (called **replication lag**). This effect is known as **eventual consistency**.
 
 ### Reading Your Own Writes
 
-We should use **read-after-write** consistency, also known as **read-your-writes consistency**.
+Let the user submit some data and then view what they have submitted by refreshing the page. But the user can read stale data from a stale replica. To prevent this anomaly, we should use **read-after-write** consistency, also known as **read-your-writes consistency**.
 
-E.g. by performing certain kind of reads on the leader.
+Methods:
 
-### Monotonic Reads
+* Performing certain kind of reads on the leader. Always read the user's own profile from the leader and any other users' profiles from a follower.
+
+* Monitor the timestamps/replication lag on followers and prevent queries on any follower that is more than one minute behind the leader.
+
+### Monotonic Reads - 单调读
 
 A user first reads from a fresh replica, then from a stale replica. Time appears to go backward.
 
 Monotonic read means that if one user makes several reads in sequence, they will not see time go backward. We can do that by making sure that each user always reads from the same replica.
 
+由于存在Master和各Follower之间的复制延迟不同，因此当用户从不同Follower读取数据时，可能会出现“时光倒流”的问题。即，如果先访问延迟小的Follower，再访问延迟大的Follower。那么可能后面读到的反而是旧数据，这种现象被成为“时光倒流”。
+
+保证用户如果先读取到较新的数据，后续不会读取到更旧的数据。通常做法包括：确保每个用户的读请求都访问同一个follower。
+
 ### Consistent Prefix Reads
 
-Any writes that are casually related to each other are written to the same pattern.
+Any writes that are **casually related** to each other are written to the same partition.
 
 ### Solutions for Replication Lag
 
@@ -110,13 +120,13 @@ Automatic Conflict Resolution:
 
 * Mergeable persistent data structures
 
-* Operational transformation
+* Operational transformation is the conflict resolution algorithm behind collaborative editing applications
 
 ### Multi-Leader Replication Topologies
 
-all-to-all topology, star topology, circular topology.
+all-to-all topology, star topology, circular topology. - 全部至全部型拓扑，星型拓扑，环型拓扑。
 
-Figure 5-9: With multi-leader replication, writes may arrive in the wrong order at some replicas.
+With multi-leader replication, writes may arrive in the wrong order at some replicas.
 
 ## Leaderless Replication
 
@@ -144,7 +154,9 @@ There is no direct way of measuring the staleness measurements.
 
 ### Sloppy Quorums and Hinted Handoff
 
-**sloppy quorum** - writes and reads still require w and r successful responses, but those may include nodes that are not among the designated n "home" nodes for a value. It is only an assurance of durability and it does not guarantee that we can read the latest value.
+**Sloppy Quorum** - Writes and reads still require w and r successful responses, but those may include nodes that are not among the designated n "home" nodes for a value. It is only an assurance of durability and it does not guarantee that we can read the latest value.
+
+**hinted handoff** - Once the network interruption is fixed, any writes that one node temporarily accepted on behalf of another node are sent to the appropriate “home” nodes.
 
 n can describes the number of replicas within one data center. Cross data center replication between database clusters happens asynchronously.
 
@@ -167,3 +179,9 @@ Read-after-write consistency - Users should always see data that they submitted 
 Monotonic reads - After users have seen the data at one point in time, they shouldn't later see the older data.
 
 Consistent prefix reads - Users should see the data in a state that makes casual sense.
+
+## Reference
+
+[1] <https://zhuanlan.zhihu.com/p/359976256>
+
+[2] <https://www.1point3acres.com/bbs/thread-623896-1-1.html>

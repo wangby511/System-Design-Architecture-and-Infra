@@ -1,16 +1,16 @@
 # System Design - Web Crawler
 
-SET UP 2022/04/12 UPDATE 2022/04/18
+SET UP 2022/04/12 UPDATE 2022/04/20
 
 ## Functional Requirements
 
-Use Case? Search engine index - A crawler collects web pages to create a local index for search engines. Search engines then can download all the pages to create an index on them to perform faster searches, like Reverse Index Service and Document Service.
+Use Case? Search engine index - A crawler collects web pages to create a local index for search engines. Search engines then can download all the pages to create an index on them to perform faster searches, like Reverse Index Service and Document Service. Another big use case  is copyright detection.
 
 Number of Total? 15 billion pages per month.
 
 Content type? HTML pages only. (Sound files, images and videos are not considered here)
 
-Protocol - HTTP.
+Protocol - HTTP only.
 
 Storage retention? Store up to five years.
 
@@ -28,9 +28,11 @@ Extensibility - new functionality could be added to it and there could be newer 
 
 ## Estimation
 
-15e9 / 30 / 86400 ~= 6000 pages/second
+Crawl speed = 15 billion / 30 / 86400 ~= 6000 pages/second
 
-15e9 x (100 KB + 500 Bytes) = 1.5 TB
+Download bandwidth = 6000 pages/second * (100 KB + 500 Bytes) ~= 600 MB/s
+
+Storage estimation = 15 billion x (100 KB + 500 Bytes) = 1.5 PB
 
 A web page has the average size of 100KB and 500 Bytes of metadata. => 1.5 TB per month and 90 PB for five years.
 
@@ -64,19 +66,19 @@ Go back to step one again.
 
 Seed URLs - We can give some beginning URLs where we can start.
 
-URL Frontier - FIFO queue, it also should prioritize which URLs remained to be crawled/downloaded. We can distribute our URL frontier into multiple servers and on each server we have multiple worker threads performing the crawling tasks.
+URL Frontier - FIFO queue, it also should prioritize which URLs remained to be crawled/downloaded. We can distribute our URL frontier into multiple servers and on each server we have multiple worker threads performing the crawling tasks. Front queue is maintained  by prioritizing and back queue is maintained by politeness selector, or we can replace the back queue with some type of rate limiters.
 
-HTML Downloader - it needs DNS resolver to translate URL to IP address.
+HTML Downloader/Fetcher - it needs DNS resolver to translate URL to IP address.
 
 Content Parser - parses HTML pages and checks/validates if it is malformed.
 
-Content Seen - checks if a HTML page/document is already stored/crawled before. Most are stored on disk (Content Storage) and the popular ones are in memory. We can calculate a 64-bit checksum (like MD5 or SHA) of every processed document and store it in a database. For every new document, we can compare its checksum to all the previously calculated checksums to see the document has been seen before. Checksum storage: 15 billion distinct web pages * 8 bytes => 120 GB, which can fit into a modern-day server’s memory.
+Content Seen - checks if a HTML page/document is already stored/crawled before. Most are stored on disk (Content Storage) and the popular ones are in memory. We can calculate a 64-bit checksum/fingerprint (like MD5 or SHA) of every processed document and store it in a database. For every new document, we can compare its checksum to all the previously calculated checksums to see the document has been seen before. Checksum storage: 15 billion distinct web pages * 8 bytes => 120 GB, which can fit into a modern-day server’s memory.
 
 Link Extractor - extracts links from HTML pages. It can have the extensibility where we can add image or video Downloader module (different media types) and Web Monitor module.
 
-URL Filter - filter out pages with noise or ads only or few content, even spam pages.
+URL Filter - filter out pages with noise or ads only or few content, even spam pages. The customers can also provide some rules, disallow list. Also we can add a cache layer for websites with Robots exclusion.
 
-URL Seen - checks if a URL is already stored. The URL Storage keeps tracks of URLs already visited. Hash tables in-memory cache and URL disk storage are usually used. If this URL has not been seen/visited before, pass it to URL Frontier. We keep an in-memory cache of popular URLs on each host shared by all threads.
+URL Seen/URL De-dup - checks if a URL is already stored. The URL Storage keeps tracks of URLs already visited. Hash tables in-memory cache and URL disk storage are usually used. We could also maintain the checksums. If this URL has not been seen/visited before, pass it to URL Frontier. We keep an in-memory cache of **popular** URLs on each host shared by all threads.
 
 ## Algorithm
 
@@ -88,7 +90,7 @@ Large volume of web pages - Download the same URL in parallel (avoid sending too
 
 Rate of changes on web changes - By the time the crawler is downloading the last page from a site, the page may change.
 
-### Distributed Crawling
+### Distributed Crawling/Data Partition
 
 My idea:
 
@@ -110,17 +112,19 @@ The majority of URLs are stored in disk. We only maintain buffers in memory for 
 
 Check **Robots.txt** file first which is called Robots Exclusion Protocol, before attempting to crawling a website.
 
-## Follow Up
-
-How to handle new updates in the already crawled URL? Compare the content and set a threshold (10% content diff).
-
-DNS lookup can be a bottleneck and bandwidth should be kept enough to keep high throughput.
-
 ## Fault Tolerance
 
 Since we are distributing URLs based on hostname to different hosts by using consistent hashing, we can store these data like URLs, checksum and content on the same host.
 
-Each host will perform checkpoint periodically and dump a snapshot of all the data it is holding onto a remote server. If a server goes down, another server can replace it.
+Each host will perform **checkpoint** periodically and dump a **snapshot** of all the data (mainly FIFO queues) it is holding onto a remote server. If a server goes down, another server can replace it and restore from the backup data.
+
+## Follow Up
+
+How to handle new updates in the already crawled URL? Compare the content and set a threshold (10% content diff).
+
+DNS lookup can be a bottleneck and bandwidth should be kept enough to keep high throughput. We could start caching DNS results by building our own local DNS resolver.
+
+Crawler Traps - A cycle of links cause a crawler to crawl infinitely.
 
 ## Reference
 

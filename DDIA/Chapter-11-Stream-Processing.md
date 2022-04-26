@@ -44,7 +44,7 @@ Process of observing all data changes written to a database and extracting them 
 
 **Log consumers** - derived data systems
 
-**async** - change data capture is usually async. It has the downside that all the issues of replication lag apply.
+**async** - change data capture is usually async. It has the downside that all the issues of replication **lag apply**.
 
 **Initial snapshot** - Take a snapshot with **a known position or offset** in the log.
 
