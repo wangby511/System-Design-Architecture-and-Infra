@@ -74,27 +74,27 @@ Upload Service: -> Distributed Storage & Metadata Cache/DB & Distributed Queue (
 
 Transcoding servers 1 -> Transcoded storage -> CDN.
 
-   　　　　　　　　  2 -> Completion events stored at completion queue. -> Completion handler updates metadata database and cache.
+   　　　　　　　　    2 -> Completion events stored at completion queue. -> Completion handler updates metadata database and cache.
 
 User -> [**Original Storage**] -> [**Transcoding Servers**] split 1 -> [**Completion queue**] -> [**Completion Handler**] -> update Metadata DB/Cache.
 
 split 2 -> [**Transcoded Storage**] -> [**CDN**]
 
-![image](https://systeminterview.com/imgs/ch14/14-4.png)
+A **Binary Large Object (BLOB)** is a collection of binary data stored as a single entity in a database management system.
 
-A Binary Large Object (BLOB) is a collection of binary data stored as a single entity in a database management system.
+Completion handler contains a bunch of workers that continuously pull event data from the queue. It updates the metadata database and cache when video transcoding is complete.
 
 Conclusion of two steps: Upload the actual video. Update video metadata. Metadata contains information about video URL, size, resolution, format, user info, etc. Those two steps can be in parallel.
 
 ## Video Watching Flow
 
-Videos are streamed from CDN directly.
+Videos are streamed from CDN directly. When you click the play button, a video is streamed from the CDN. The edge server closest to you will deliver the video.
 
 ## Details
 
 ### Video Transcoding
 
-Different users have differnt network bandwidth and devices. Therefore, switching video quality automatically or manually based on network conditions is essential for smooth user experience.
+Different users have different network bandwidth, devices and browsers. Therefore, switching video quality automatically or manually based on network conditions is essential for smooth user experience.
 
 Containers(contains the video file, audio and metadata) and Codecs(compression and decompression algorithms).
 
@@ -102,7 +102,9 @@ Containers(contains the video file, audio and metadata) and Codecs(compression a
 
 A directed acyclic graph (DAG) programming model defines tasks in stages so that they can be executed sequentially or in parallel.
 
-**DAG Scheduler**
+**Preprocessor** - video splitting into small chunks like Group of Pictures(GOP) alignment. Also it caches/stores GOPs and metadata in temporary storage for possible retry operations.
+
+**DAG Scheduler** - splits a DAG graph into stages of tasks and puts them in the task queue in the resource manager.
 
 Video -> Inspection, Video transcoding, Thumbnail, ..., Watermark
 
@@ -114,13 +116,13 @@ Those 3 steps above can be in parallel while the system is doing a video uploadi
 
 **Resource Manager**
 
-Task queue: It is a priority queue that contains tasks to be executed.
+Task queue - a priority queue that contains tasks to be executed.
 
-Worker queue: It is a priority queue that contains worker utilization info.
+Worker queue - a priority queue that contains worker utilization info.
 
-Running queue: It contains info about the currently running tasks and workers running the tasks.
+Running queue - contains info about the currently running tasks and workers running the tasks.
 
-Task scheduler: It picks the optimal task/worker, and instructs the chosen task worker to execute the job.
+Task scheduler - picks the optimal task/worker, and instructs the chosen task worker to execute the job.
 
 The resource manager works as follows:
 
@@ -156,9 +158,15 @@ A CDN is a system of distributed servers that deliver web content to a user base
 
 ## Error Handling
 
-API server down - back up machines.
+API servers down - API servers are stateless so that the requests can be redirected to different backup API servers.
 
-DB server down - secondary DB changes to primary if the primary one has an outage.
+Metadata DB server down - following DB server changes to primary if the primary one has an outage.
+
+## Follow Up
+
+In order to make the system more loosely coupled, we can introduce message queues between each components. Like Original Storage -> Download Module -> Encoding Module -> Upload Module -> Encoded Module -> CDN.
+
+Live Streaming - we may need a different streaming protocol because of higher latency requirement. Small chunks of data are already processed in real-time. It also requires different sets of error handling without taking too much time.
 
 ## Reference
 
