@@ -8,9 +8,13 @@ Upload a video
 
 Watch a video
 
-Share, like, comment, search, subscribe to a channel, add to playlist...
+Share, like/dislike, comment, total views, search ...
+
+Change to different resolutions
 
 Questions to be confirmed - Type of clients, video resolutions, encryption required, maximum size limit of a video, leverage some existing cloud services like CDN or blob storage...
+
+Not considered: subscribe to a channel, add to playlist, personal favorites
 
 ## Non-Functional Requirements
 
@@ -18,7 +22,7 @@ Reliable(not losing data)
 
 Availability
 
-Smooth video streaming
+Smooth video streaming / Real-time (CDN)
 
 ## Other Features
 
@@ -40,23 +44,27 @@ The upload-view(write-read) ratio is about 1:200 - a read-heavy system.
 
 uploadVideo(api_dev_key, video_title, video_description, tags[], category_id, default_language, recording_details, video_contents)
 
-searchVideo(api_dev_key, search_key_word, maximum_items_to_return, next_page_token)
+searchVideo(api_dev_key, search_key_word, maximum_items_to_return, next_page_token) - return a list of video resources
 
-streamVideo(api_dev_key, video_id, offset, codec, resolution)
+streamVideo(api_dev_key, video_id, offset, codec, resolution) - return media stream
 
 ## DB Schema
 
 ### MySQL
 
-1 Video metadata storage - MySQL
+1 Video metadata storage
 
 Videos metadata can be stored in a SQL database. The following information should be stored with each video:
 
 VideoID, Title, Timestamp, Description, Size, Thumbnail, User, Total number of likes, dislikes, Total number of views
 
-2 User data storage - MySQL
+2 User data storage
 
 UserID, Name, Email, Address, Age, etc.
+
+3 Video Comment
+
+CommentID, videoID, userID, Comment, Timestamp
 
 (Billing information - MySQL)
 
@@ -175,3 +183,5 @@ Live Streaming - we may need a different streaming protocol because of higher la
 [2] <https://www.cnblogs.com/wangby511/p/14708649.html>
 
 [3] <https://systeminterview.com/design-youtube.php>
+
+[4] [古城算法 - 系统设计 Design video streaming system](https://www.youtube.com/watch?v=xBrMSrdCEGQ)
