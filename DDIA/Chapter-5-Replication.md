@@ -18,7 +18,11 @@ One of the replicas is designated the leader and the other are known as follower
 
 Querying/Reading can be from both leader and followers but writes are only directed to leader.
 
-### Synchronous Versus Asynchronous Replication
+### Synchronous Versus Asynchronous Replication - 同步复制与异步复制
+
+Synchronous - the follower has to wait for the response of its follower before reporting to the user.
+
+Asynchronous - the follower does not wait for a response.
 
 **semi-synchronous** - It can guarantee that we can have up-to-date copy of the data on at least 2 nodes - the leader and one sync follower.
 
@@ -26,7 +30,7 @@ Querying/Reading can be from both leader and followers but writes are only direc
 
 Take a snapshot of the leader's database and copy that to the new follower node.
 
-The follower connects to the leader and requests all the data changes.
+The follower connects to the leader and requests all the data changes. If the leader fails, one of the followers needs to be promoted to be the new leader.
 
 ### Handling Node Outages
 
@@ -72,13 +76,17 @@ A user first reads from a fresh replica, then from a stale replica. Time appears
 
 Monotonic read means that if one user makes several reads in sequence, they will not see time go backward. We can do that by making sure that each user always reads from the same replica.
 
-由于存在Master和各Follower之间的复制延迟不同，因此当用户从不同Follower读取数据时，可能会出现“时光倒流”的问题。即，如果先访问延迟小的Follower，再访问延迟大的Follower。那么可能后面读到的反而是旧数据，这种现象被成为“时光倒流”。
+由于存在Master和各Follower之间的复制延迟不同，因此当用户从不同Follower读取数据时，可能会出现“时光倒流”的问题。即，如果先访问延迟小的Follower，再访问延迟大的Follower，那么后面读到的反而是旧数据。
 
-保证用户如果先读取到较新的数据，后续不会读取到更旧的数据。通常做法包括：确保每个用户的读请求都访问同一个follower。
+保证用户如果先读取到较新的数据，后续不会读取到更旧的数据。通常做法包括：确保同一用户总是从固定的副本读取。
 
-### Consistent Prefix Reads
+### Consistent Prefix Reads - 前缀一致读
 
-Any writes that are **casually related** to each other are written to the same partition.
+Any writes that are **casually related** to each other are written to **the same partition**.
+
+对于一系列按照某个顺序发生的写请求，读取这些内容时也会按照当时写入的顺序。这是分片数据库出现的一个特殊问题。
+
+解决方案是确保任何具有因果关系顺序的写入都交给一个分区来完成。
 
 ### Solutions for Replication Lag
 
@@ -142,19 +150,33 @@ Two ways of approaches:
 
 * Anti-entropy process - a background process
 
-Quorums for reading and writing - w, r are the minimum number of votes required for the read or write to be valid. The requests don't have to wait for all n nodes to respond - they can return when w or r nodes have responded.
+Quorums for reading and writing - r, w are the minimum number of votes required for the read or write to be valid. The requests don't have to wait for all n nodes to respond - they can return when w or r nodes have responded.
 
 If w + r > n, at least one node of the r replicas you read from must have seen the most recent successful write. **at least one overlap**
+
+n个副本，写入需要w个节点确认，读取需要至少查询r个节点，如果 w+r>n，则读取的节点中可以保证包含最新值。
 
 Some nodes are unavailable due to: the node is down, disk error or network interruption.
 
 ### Limitations of Quorum Consistency
 
-There is no direct way of measuring the staleness measurements.
+If a sloppy quorum is used, no guarantee of reading the latest value (overlapping between r nodes and w nodes).
+
+If two writes occur concurrently, no clear which one is the first. The only safe solution is to merge the concurrent writes.
+
+If a write happens concurrently with a read, it is undetermined whether the read returns the old or new value.
+
+If a write is partially successful (fails on some nodes), the successful nodes/replicas can not do the roll back.
+
+If a node carrying a new value fails, the data is restored from the replica carrying the old value. The number of replicas storing the new value may fall behind w, breaking the quorum condition.
+
+Monitoring staleness - difficult to measure the amount of replication lag in leaderless replication.
 
 ### Sloppy Quorums and Hinted Handoff
 
 **Sloppy Quorum** - Writes and reads still require w and r successful responses, but those may include nodes that are not among the designated n "home" nodes for a value. It is only an assurance of durability and it does not guarantee that we can read the latest value.
+
+当出现网络问题时，无法满足w和r的数量。可以将写请求暂时放在不属于n集合的其他临时节点中，令写和读满足w和r。等网络问题解决，再将临时节点中的数据回传给原始节点。sloppy quorum是为了提高写入的可用性，但也意味着即使满足w+r>n，也不能保证读取到新值，因为新值可能存在于临时节点，还没被回传过来。
 
 **hinted handoff** - Once the network interruption is fixed, any writes that one node temporarily accepted on behalf of another node are sent to the appropriate “home” nodes.
 
@@ -164,7 +186,9 @@ n can describes the number of replicas within one data center. Cross data center
 
 Concurrent writes in a Dynamo-style data store - there is no well-defined ordering.
 
-**last write wins(LWW)** - attach a timestamp to each write, pick the biggest timestamp as the most "recent" and discard any writes with an earlier timestamp. If data loss is not acceptable, it is a poor choice.
+**Last Write Wins(LWW)** - Attach a timestamp to each write, pick the biggest timestamp as the most "recent" and discard any writes with an earlier timestamp. LWW will discard concurrent writes. If data loss is not acceptable, LWW is a poor choice for conflict resolution.
+
+最后写入胜利
 
 A deletion marker is known as **a tombstone**.
 
@@ -185,3 +209,5 @@ Consistent prefix reads - Users should see the data in a state that makes casual
 [1] <https://zhuanlan.zhihu.com/p/359976256>
 
 [2] <https://www.1point3acres.com/bbs/thread-623896-1-1.html>
+
+[3] <https://zhuanlan.zhihu.com/p/438670474>

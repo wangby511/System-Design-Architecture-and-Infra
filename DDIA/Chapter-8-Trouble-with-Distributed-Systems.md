@@ -106,7 +106,9 @@ Fencing token - a number that increases every time a lock is granted. Every time
 
 Zookeeper - the transaction ID `zxid` and the node version `cversion` are both monotonically increasing. - 当使用zookeeper作为锁服务时，可以用事务标识 zxid 或节点版本 cversion 来充当fencing token，这两个都满足单调递增的要求。
 
-Byzantine Faults - A node is inadvertently acting in error like making fake fencing token. We assume that there is no cheating issue in this scope. - 拜占庭故障, 节点存在撒谎的情况。
+### Byzantine Faults
+
+A node is inadvertently acting in error like making fake fencing token. We assume that there is no cheating issue in this scope. That node behaves incorrectly in some arbitrary way, for example by sending contradictory or malicious messages to other nodes. - 拜占庭故障, 节点存在撒谎的情况。
 
 Solutions for Byzantine Faults:
 

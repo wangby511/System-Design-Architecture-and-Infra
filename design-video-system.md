@@ -66,13 +66,13 @@ UserID, Name, Email, Address, Age, etc.
 
 CommentID, videoID, userID, Comment, Timestamp
 
-(Billing information - MySQL)
+(Billing information, transaction information - must use MySQL)
 
 ### NoSQL
 
-Cassandra. It can handle heavy write and read.
+Cassandra can handle heavy write and read.
 
-It records the viewing history of users.
+It records the viewing history of users, like Live Viewing History (e.g. within 3 months) and Compressed Viewing History (more than 3 months ago).
 
 Pure video chunks are saved in S3.
 
@@ -118,11 +118,11 @@ Video -> Inspection, Video transcoding, Thumbnail, ..., Watermark
 
 Audio -> Audio Encoding
 
-Metadata Cache/DB
+Those 3 steps above can be in parallel while the system is doing a video uploading task. And finally update Metadata Cache/DB.
 
-Those 3 steps above can be in parallel while the system is doing a video uploading task.
+To support different video processing pipelines and maintain high parallelism.
 
-**Resource Manager**
+**Resource Manager** - responsible for managing the efficiency of resource allocation. It contains 3 queues and a task schedular.
 
 Task queue - a priority queue that contains tasks to be executed.
 
@@ -148,17 +148,19 @@ The resource manager works as follows:
 
 ### Sharding based on UserID
 
-Hot user issue OR a user has many videos.
+Hot user issue OR a user has many videos. **hot key problem.**
 
 Need to query all servers if a user wants to search some video name.
 
-Unbalanced storage. Some users have a lot of videos while others have few.
+Unbalanced storage (not distributed uniformly). Some users have a lot of videos while others have only a few.
 
 ### Sharding based on VideoID
 
-Popular videos(need cache).
+Popular videos (We need cache to handle with them).
 
 A centralized server is going to aggregate and rank these results before returning them to customers.
+
+The better solution might be elastic search.
 
 ## CDN
 
@@ -168,13 +170,25 @@ A CDN is a system of distributed servers that deliver web content to a user base
 
 API servers down - API servers are stateless so that the requests can be redirected to different backup API servers.
 
-Metadata DB server down - following DB server changes to primary if the primary one has an outage.
+Metadata DB server down - following DB server changes to primary if the primary one has an outage. If one of the follower servers is down, it could be replaced by another one.
 
 ## Follow Up
 
-In order to make the system more loosely coupled, we can introduce message queues between each components. Like Original Storage -> Download Module -> Encoding Module -> Upload Module -> Encoded Module -> CDN.
+Scale up everything - In order to make the system more loosely coupled, we can introduce message queues between each components. Like Original Storage -> Download Module -> Encoding Module -> Upload Module -> Encoded Module -> CDN.
 
 Live Streaming - we may need a different streaming protocol because of higher latency requirement. Small chunks of data are already processed in real-time. It also requires different sets of error handling without taking too much time.
+
+Optimize uploading speed - split video into chunks and upload in parallel. Optimize read speed - to nearby data center or CDNs.
+
+Once the backend server get the whole data of original video, we can tell the user that uploading is successful. That **does not mean the encoding is completed/successful**. Once the video is available, we can notify the user.
+
+The consistency after a video is uploaded.
+
+Multiple platforms are supported.
+
+How to reduce the cost/expense of CDN? Replaced with hot/popular videos like LFU. Or we can optimize bandwidth.
+
+How to de-duplicate? Use checksum of the whole original video file.
 
 ## Reference
 
