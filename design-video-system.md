@@ -2,6 +2,8 @@
 
 SET UP 2022/02/22 & 2021/04/19
 
+LAST UPDATED 2022/05/23
+
 ## Functional Requirements
 
 Upload a video
@@ -24,9 +26,9 @@ Availability
 
 Smooth video streaming / Real-time (CDN)
 
-## Other Features
+## Other Features Not in scope
 
-Recommendations, Top K popular...
+Video recommendations, most or Top K popular videos, channels, subscriptions, watch later, favorites
 
 ## Estimation
 
@@ -46,7 +48,7 @@ uploadVideo(api_dev_key, video_title, video_description, tags[], category_id, de
 
 searchVideo(api_dev_key, search_key_word, maximum_items_to_return, next_page_token) - return a list of video resources
 
-streamVideo(api_dev_key, video_id, offset, codec, resolution) - return media stream
+streamVideo(api_dev_key, video_id, offset, codec, resolution) - return a media stream (a video chunk) from the given offset
 
 ## DB Schema
 
@@ -182,13 +184,15 @@ Optimize uploading speed - split video into chunks and upload in parallel. Optim
 
 Once the backend server get the whole data of original video, we can tell the user that uploading is successful. That **does not mean the encoding is completed/successful**. Once the video is available, we can notify the user.
 
-The consistency after a video is uploaded.
+Where to store thumbnail pictures? - We can use [BigTable](https://en.wikipedia.org/wiki/Bigtable) as it combines multiple files into one block to store on the disk and is very efficient in reading a small amount of data.
+
+Separate write and read traffic. For newly added videos, we can upload them as well as metadata to primary server. And it takes some time to sync up to secondary/follower servers. This is eventual consistency and a latency before the new video is available is acceptable.
 
 Multiple platforms are supported.
 
-How to reduce the cost/expense of CDN? Replaced with hot/popular videos like LFU. Or we can optimize bandwidth.
+How to reduce the cost/expense of CDN? Replaced with hot/popular videos like LRU, LFU. Or we can optimize bandwidth. Less popular videos (1-20 views per day) that are not cached by CDNs can be served by our video servers in various data centers.
 
-How to de-duplicate? Use checksum of the whole original video file.
+How to de-duplicate? Use checksum of the whole original video file. Inline de-duplication will save us a lot of resources - As soon as any user starts uploading a video, our service can run video matching algorithms to find if there are any duplications.
 
 ## Reference
 
