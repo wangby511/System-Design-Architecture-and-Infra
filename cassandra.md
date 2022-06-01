@@ -20,6 +20,8 @@ Compaction — the periodic process of merging multiple SSTables into a single S
 
 3 The memtable stores writes in a sorted order until reaching a configurable limit and then it is flushed to a **sorted strings table** called **SSTable**. Writes are atomic at row level. Meaning that all columns are written or updated, or none are.
 
+![image](https://pic3.zhimg.com/80/1d61a229bdae96c8a837afce53586be6_720w.png)
+
 ## Reads in Cassandra
 
 Bloom Filters — helps to point if a key may exist in its corresponding SSTable.
@@ -51,6 +53,16 @@ A) no single point of failure. B) read fast.
 Potential issues:
 
 A) update/delete a little slow as it needs to update/delete information from multiple nodes. B) low consistency.
+
+## Virtual Node
+
+Virtual nodes in a Cassandra cluster are also called **vnodes**. Vnodes can be defined for each physical node in the cluster. Each node in the ring can hold multiple virtual nodes. By default, each node has 256 virtual nodes.
+
+## Scaling
+
+Cassandra natively supports horizontal scaling, in a way similar to consistent hashing.
+
+Data is evenly distributed to every node with a partitioning mapping and a proper replication factor. Each node saves its own part of the ring based on hashed value (partitioning) and also saves copies from other virtual nodes (replication).
 
 ## Reference
 

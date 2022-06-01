@@ -22,9 +22,13 @@ Availability - simple measure of the percentage of time that a system, service, 
 
 ## Common Component
 
-Use a queue - de-coupling the services and act as a buffer in case throttling
+### Decouple
 
-## Normal Follow Ups
+Use a queue - de-coupling the services and act as a buffer in case throttling.
+
+A common solution is to use/adopt a message queue (Kafka) to decouple producers and consumers. This makes the whole process asynchronous and producers/consumers can be scaled independently.
+
+## Normal Questions
 
 Scaling database - vertical vs horizontal
 
@@ -32,7 +36,13 @@ SQL or NoSQL
 
 Leader-follower replica
 
-Database Sharding - hotkey issue and handling mechanisms
+### Database Sharding - hotkey issue and handling mechanisms
+
+Original purpose - the data becomes very large and it can not be stored on a single machine. So we need to split it into distributed disks for storing and querying.
+
+A shard or service that receives much more data than the others is called **a hotspot**.
+
+This problem can be mitigated by allocating more nodes/resources to process popular item/key, or at the beginning we should choose the right/proper partition key.
 
 ## Delivery Protocols
 
@@ -41,6 +51,28 @@ Database Sharding - hotkey issue and handling mechanisms
 **WebSocket** - WebSocket is a computer communication protocol which provides full-duplex communication channels. Suitable for bi-directional real-time communication.
 
 **Server-Sent Events(SSE)** - Unlike WebSockets, Server-Sent Events are a one-way communication channel where events flow from server to client only. Server-Sent Events allows browser clients to receive a stream of events from a server over an HTTP connection without polling.
+
+## Process vs Thread
+
+- Processes are independent and contain their own state information. Threads run within a process and share the same state and memory space
+
+- Processes have to communicate with each other using inter-process communication mechanisms. Threads communicate directly because they share the same variables.
+
+- Context switching between threads is faster than between processes.
+
+## How to choose database?
+
+- What does data look like? Is the data relational? Is it a document or a blob?
+
+- Is the workflow read heavy or write heavy or both heavy?
+
+- Is transaction needed?
+
+- Do the queries rely on many online analytical processing (OLAP) functions?
+
+## Reconciliation
+
+Reconciliation means comparing different sets of data in order to ensure data integrity.
 
 ## Reference
 
