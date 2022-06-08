@@ -132,9 +132,15 @@ Aggregated data: (ad_id, click_minute, count, ...) and (timestamp_minute, most_c
 
 Time: Event time & Processing time. Trade-off to decide which is used for aggregation. Prefer **event time** for more accuracy. We can use **watermark**, which is regarded as an extension of an aggregation window (extended wait time), to include the events with short delays in order to help improve accuracy.
 
-Aggregation windows: We choose Tumbling window (same length with non-overlapping) and sliding window (sliding across the data stream according to a specified interval).
+Aggregation windows: We choose **tumbling window** (same length with non-overlapping) and **sliding window** (sliding across the data stream according to a specified interval).
+
+Delivery guarantees of message queue: We recommend exactly-once delivery.
 
 Avoid data duplication: We can record the offset by using external file storage (HDFS or S3). To avoid data loss, we need to save the offset once we get an ack back from downstream service.
+
+Make several steps into a transaction box: Aggregator sends result to downstream service, ACK back from downstream service and Aggregator's saving offset to HDFS/s3. **A distribution transaction** is a transaction that works across several nodes. If any of the operations fails, the whole transaction is rolled back.
+
+Monitoring: latency, message queue size.
 
 Reconciliation: compares raw data database and aggregation database. The results may not exactly same match because some events might arrive late (with latency).
 

@@ -20,6 +20,10 @@ Scalability - capability of a system to handle or manage growing and increasing 
 
 Availability - simple measure of the percentage of time that a system, service, or a machine remains operational under normal conditions.
 
+## Common Concepts
+
+**SLA (Service-level Agreement)** - a contract between a service provider and a client. E.g. 99.9% availability.
+
 ## Common Component
 
 ### Decouple
@@ -32,8 +36,6 @@ A common solution is to use/adopt a message queue (Kafka) to decouple producers 
 
 Scaling database - vertical vs horizontal
 
-SQL or NoSQL
-
 Leader-follower replica
 
 ### Database Sharding - hotkey issue and handling mechanisms
@@ -42,7 +44,9 @@ Original purpose - the data becomes very large and it can not be stored on a sin
 
 A shard or service that receives much more data than the others is called **a hotspot**.
 
-This problem can be mitigated by allocating more nodes/resources to process popular item/key, or at the beginning we should choose the right/proper partition key.
+This problem can be mitigated by 1) Allocate more nodes/resources to process popular item/key. 2) At the beginning we should choose the right/proper partition key.
+
+Steps of allocating more resources: 1) Apply for extra resources. 2) Extra resources allocated. 3) Split items/events. 4) Merged/Reduced results.
 
 ## Delivery Protocols
 
@@ -60,7 +64,7 @@ This problem can be mitigated by allocating more nodes/resources to process popu
 
 - Context switching between threads is faster than between processes.
 
-## How to choose database?
+## How to choose database? - SQL or NoSQL
 
 - What does data look like? Is the data relational? Is it a document or a blob?
 
@@ -73,6 +77,28 @@ This problem can be mitigated by allocating more nodes/resources to process popu
 ## Reconciliation
 
 Reconciliation means comparing different sets of data in order to ensure data integrity.
+
+## Consistent Hashing
+
+Consistent hashing is a special kind of hashing algorithm such that when a hash table is re-sized and consistent hashing is used,only k/n keys need to be remapped on average, where k is the number of keys, and n is the number of slots.
+
+Using the same hash function like SHA-1, we map the keys and servers into a circular ring. To determine which server a key is stored on, we go clockwise from the key position on the ring until a server is found. When a server is removed or added, only a small fraction of keys require re-distribution with consistent hashing.
+
+### Virtual Nodes
+
+To further achieve more uniform/balanced distribution, we introduce virtual nodes. A real server can have multiple virtual nodes. With virtual nodes, each server is responsible for multiple partitions.
+
+### Cons
+
+Minimized keys are re-distributed when servers are added or removed.
+
+It is easy to scale horizontally because data are distributed more evenly.
+
+## Lambda Architecture
+
+Lambda architecture is a way of processing massive quantities of data that provides access to batch-processing and stream-processing methods with a hybrid approach [3].
+
+![img](https://databricks.com/wp-content/uploads/2018/12/hadoop-architecture.jpg)
 
 ## Reference
 

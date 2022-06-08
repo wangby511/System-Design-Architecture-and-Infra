@@ -1,52 +1,62 @@
 # System Design - File System
 
-CREATED 2022/05/21
+CREATED 2022/05/21 UPDATED 2022/06/06
 
 ## Functional Requirements
 
-Upload and download files (can support any file formats)
+Upload, view and download files (can support any file formats)
 
-Files sync across multiple devices
+Automatic files synchronization between multiple devices
 
-Notifications
+Share files/folder with links to friends/public
 
-Share files with links to friends/public
+Less important: Notifications
+
+Extended: The system should support snapshot of files so that users can go back to any version of the files.
+
+**Notice**: Need to clarify requirements like uploading, viewing and downloading, typical file size.
 
 ## Non-Functional Requirements
 
-Reliability - data loss is unacceptable
+Reliability - data loss is unacceptable. Cloud storage ensures that users will never lose their data by keeping multiple copies of the data stored on different geographically located servers.
 
-Scalability - should handle large volume of traffic
+Scalability - should be able to handle large volume of traffic
 
-High availability
+High availability - Users can access their files/photos from any device whenever and wherever they like.
 
-## Estimations
+ACID-ity of files operations is required.
 
-50 million users with 10 million DAU
+## Capacity Estimations
 
-Every user has 10 GB free space - 10 GB x 50 million = 500 PB
+500 million users with 100 million DAU
 
-Every user uploads 10 files per day - 1000 QPS
+Every user has 10 GB free space - 10 GB x 500 million = 5000 PB
+
+Every user uploads 10 files per day - 10000 QPS
+
+Assume that there are one million active connections per minute
 
 ## Basic Concepts
 
 ### Main Components
 
-Load balancer - distribute (network traffic) requests among API servers
+Load Balancer - distribute (network traffic) requests among API servers with load/traffic condition into consideration (more intelligent solution).
 
-API servers - handle logic for uploading and downloading files
+API Servers - handle logic for uploading and downloading files - Mainly 3 : Block Server, Metadata Server, Synchronization Server.
 
-Metadata database - for files, users, blocks, versions, ect. We choose relational databases. For this database we need to set up data replication and sharding to meet availability and scalability requirements.
+Metadata database - for files, users, blocks, versions, ect. We choose **relational databases** as they natively support ACID properties. For this database we need to set up data replication and sharding to meet availability and scalability requirements.
 
-Metadata cache - store some of the metadata cache for fast retrieval.
+Metadata Cache & Storage - store some of the metadata cache for fast retrieval.
 
 Notification service - notify relevant clients or different platforms when a file is added/edited/removed.
 
-**Block servers** - Upload blocks to cloud storage. A file can be split into several blocks, each with a unique hash value, stored in metadata database. E.g. Dropbox sets the maximal size of a block to 4MB. Block servers process files passed from clients by splitting a file into blocks, **compress** each block and **encrypt** them. And then upload them into cloud storage in parallel.
+**Block servers** - Upload blocks to cloud storage. A file can be split into several blocks, each with a unique hash value, stored in metadata database. E.g. Dropbox sets the maximal size of a block to **4MB**. Block servers process files passed from clients by splitting a file into blocks, **compress** each block and **encrypt** them. And then upload them into cloud storage in parallel. If a user fails to upload a file, then only the failing block/chunk will be retried.
 
 File/Cloud Storage - A file is split into smaller blocks and stored into cloud storage.
 
 (Offline backup queue)
+
+![image](https://cdn.hashnode.com/res/hashnode/image/upload/v1617952845935/_gcU4laIG.png)
 
 ### APIs
 
@@ -102,14 +112,44 @@ API server failure - replaced with another one since it is stateless
 
 Notification server failure - over 1 million connections are open per machine. Replaced with another machine and re-establish/re-connecting is a relatively slow process.
 
-## Follow Up
+## Infra Graph
+
+![image](https://cdn.hashnode.com/res/hashnode/image/upload/v1617952954142/fiX9kr9T_.png)
+
+## De-duplication
 
 De-duplicate files for the account level - Eliminating the block with the same hash value in the same account.
+
+For each new incoming file, we can calculate a hash of it and compare that hash with all the hashes of the existing files to see if we already have the same file present in this account's storage. We prefer the **In-line de-duplication** approach instead of **Post-process de-duplication** to save network and bandwidth usage.
+
+## Follow Up
 
 How to handle conflict between two users are modifying the same file? - First version that gets processed wins. The second one receives a conflict which needs to be handled manually.
 
 Why we need block servers in the middle layer? - We need chunking, compression and encryption for all types of clients. All those logics are implemented in a centralized place. Secondly, a client could be hacked and therefore it is not safe to do encryption on the client side.
 
+Should we keep a copy of metadata with Clients? - Yes. Keeping a local copy of metadata not only enables us to do offline updates but also saves a lot of round trips to update remote metadata.
+
+Cache? - To deal with hot files/chunks we can introduce a cache layer for Block storage with Least Recently Used (LRU) policy adopted.
+
+Offline editing? - Users should be able to add/delete/modify files while offline. And as soon as they come online, all their changes should be synced to the remote servers and other online devices.
+
+Message queue service - One of the clients sends the update of metadata to the **Request Queue** to Synchronization Service. Then it will send messages back through **Response Queues** that correspond to other individual subscribed clients. (When the Synchronization Service receives an update request, it checks with the Metadata Database for consistency and then proceeds with the update. Subsequently, a notification is sent to all subscribed users or devices to report the file update.)
+
+How can clients efficiently listen to changes happening with other clients? - Long polling. If the server has no new data for the client when the poll is received, instead of sending an empty response, the server holds the request open and waits for response information to become available.
+
+## Others
+
+Block storage - good for virtual machines, high-performance applications like database.
+
+File storage - general-purpose file system access.
+
+Object storage - Binary data, unstructured data.
+
 ## Reference
 
 [1] System Design Interview Book. Alex Xu. Chapter 15. Design Google Drive.
+
+[2] <https://www.educative.io/courses/grokking-the-system-design-interview>
+
+[3] <https://www.pankajtanwar.in/blog/system-design-how-to-design-google-drive-dropbox-a-cloud-file-storage-service>
