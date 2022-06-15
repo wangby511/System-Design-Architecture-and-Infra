@@ -16,6 +16,12 @@ To avoid running our of disk space - breaking the log into segments of a certain
 
 **compaction & merge** - perform compaction on those segment files by only keeping the most recent update for each key. We can also merge those several segments together at the same time of performing the compaction by using a background thread.
 
+分段：将日志分为特定大小的段（segment），当日志增长到特定尺寸时关闭当前段文件，并开始写入一个新的段文件。
+
+压缩：在日志中丢弃重复的键，只保留每个键的最近更新。
+
+Implementation details:
+
 * File format - CSV is not the best format for a log.
 
 * Deleting records - append a special deletion record to the data file called **tombstone**.
@@ -68,9 +74,9 @@ The idea of LSM-Trees - keeps a cascade of SSTables merged in the background. We
 
 B-Trees break the database down into fixed-size blocks or pages, traditionally 4KB in size on disk.
 
-The number of references to child pages in one page of the B-tree is called **the branching factor**.
+The number of references to child pages in one page of the B-tree is called **branching factor**.
 
-A B-tree with n keys always has the length of O(logn).
+A B-tree with n keys always has the depth of O(logn). Most databases can fit into a B-tree that is 3 or 4 levels deep.
 
 **Write-ahead log (WAL)** - a redo log of an append-only file to which every B tree modification must be written before it can be applied to the pages of the tree itself, to prepare for crash recovery.
 
@@ -78,7 +84,9 @@ optimization - leaf nodes can have references to its sibling pages to the left o
 
 ### Comparing B-Trees and LSM-Trees
 
-LSM-Trees are typically faster for writes, whereas B-trees are thought to be faster for reads.
+LSM-Trees are typically faster for writes. Reads are typically slower because they have to check several different data structures and SSTables at different stages of compaction.
+
+B-trees are thought to be faster for reads.
 
 A B-tree index must write every piece of data at least twice - one to the write-ahead log and one to the tree page itself.
 
@@ -110,9 +118,9 @@ Memcached, caching use only (in-memory key-value stores). Redis offers a databas
 
 ## Transaction Processing or Analytics?
 
-**online transaction processing (OLTP)** - access pattern of small number of records per query, fetched by key. Typically user-facing but with a huge volume of requests.
+**online transaction processing (OLTP)** - Online transaction processing. Access pattern characterized by fast queries that read or write a small number of records, usually indexed by key. Typically user-facing but with a huge volume of requests.
 
-**online analytic processing (OLAP)** - aggregate over large number of records. Primarily used by business analysts. Disk bandwidth is always the bandwidth.
+**online analytic processing (OLAP)** - Online analytic processing. Aggregate over large number of records. Primarily used by business analysts. Disk bandwidth is always the bandwidth. Access pattern characterized by aggregating (e.g., count, sum, average) over a large number of records.
 
 **data warehouse** - a separate database to run the analytics.
 

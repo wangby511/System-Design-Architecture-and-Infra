@@ -68,9 +68,9 @@ All data from a particular user ID is brought together in the same partition. Al
 
 **GROUP BY** - Bring the related data to the same place. Sessionization - e.g. collect all the activity events for a particular user session.
 
-**Handling skew** - Because of linchpin objects or hot keys, a reducer can produce more records than others. Solution - Spread the work of handling the hot key over several reducers, then combine the values from all the first-stage reducers into a single value key-pair.
+**Handling skew** - Because of **linchpin objects or hot keys**, a reducer can produce more records than others. Solution - Spread the work of handling the hot key over several reducers, then combine the values from all the first-stage reducers into a single value key-pair.
 
-数据倾斜 - 如果与单个关键字相关的数据量非常大，而reducer分区大小是有限的，非常可能破坏“将所有相同关键字的记录放在一起”的模式。从而形成热键。
+在单个Reducer中收集与某个celebrity相关的所有活动（例如他们发布内容的回复）可能导致严重的数据倾斜，也称为热点hot spot。
 
 ### Map-side Joins (Page 408)
 

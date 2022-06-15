@@ -1,6 +1,6 @@
 # System Design - File System
 
-CREATED 2022/05/21 UPDATED 2022/06/06
+CREATED 2022/05/21 UPDATED 2022/06/13
 
 ## Functional Requirements
 
@@ -90,6 +90,8 @@ Block - stores everything related to a file block.
 
 Steps: The client sends the new file metadata into metadata DB with marked "pending" status. Then uploads the content to block servers, forwarded to cloud storage. After the upload process is completed, mark status to "uploaded" in metadata DB and notify the user/clients.
 
+Sync steps: Client A finishes uploading files, gets confirmation and notifications are sent to Clients B and C about the changes. Client B and C receive metadata changes and download updated chunks.
+
 ### Downloading Files
 
 Fetch metadata of the file returned by API server from querying metadata DB. Then the client sends request to block servers to download all the blocks and re-construct the file.
@@ -100,7 +102,17 @@ long-polling - used by Dropbox. Since communication here is not bi-directional. 
 
 ## Reliability
 
-Multiple versions of the same file are stored across multiple data centers.
+### Replication Method (Preferred)
+
+Multiple versions of the same file are stored across multiple data centers. Making 3 copies of data gives us 1 - 0.81% ^ 3 = 0.999999 reliability. (E.g. An Availability Zone (AZ) is one or more discrete data centers with redundant power, networking. Each AZ has many racks and each rack has many nodes.) 200% storage overhead.
+
+### Erasure Coding Method
+
+We need to calculate parities before data is written to disk. But only 50% storage overhead. Cons: In normal operation, every read has to come from multiple nodes in the cluster. Reads under a failure node are slower because missing data must be re-constructed first. Complicates the data model design.
+
+## Metadata DB Partitioning
+
+In our case, we can take the hash of the ‘FileID’ of the file object we are storing to determine the partition the file metadata will be stored.
 
 ## Error Handling
 
@@ -122,6 +134,10 @@ De-duplicate files for the account level - Eliminating the block with the same h
 
 For each new incoming file, we can calculate a hash of it and compare that hash with all the hashes of the existing files to see if we already have the same file present in this account's storage. We prefer the **In-line de-duplication** approach instead of **Post-process de-duplication** to save network and bandwidth usage.
 
+## Cache
+
+To deal with hot files/chunks we can introduce **a cache layer for Block storage** with Least Recently Used (LRU) policy adopted. A high-end commercial server can have 144GB of memory; one such server can cache 36K chunks.
+
 ## Follow Up
 
 How to handle conflict between two users are modifying the same file? - First version that gets processed wins. The second one receives a conflict which needs to be handled manually.
@@ -130,13 +146,15 @@ Why we need block servers in the middle layer? - We need chunking, compression a
 
 Should we keep a copy of metadata with Clients? - Yes. Keeping a local copy of metadata not only enables us to do offline updates but also saves a lot of round trips to update remote metadata.
 
-Cache? - To deal with hot files/chunks we can introduce a cache layer for Block storage with Least Recently Used (LRU) policy adopted.
+Load Balancer? - We can add the Load balancing layer at two places in this system: 1) Between Clients and Block servers and 2) Between Clients and Metadata servers.
 
 Offline editing? - Users should be able to add/delete/modify files while offline. And as soon as they come online, all their changes should be synced to the remote servers and other online devices.
 
 Message queue service - One of the clients sends the update of metadata to the **Request Queue** to Synchronization Service. Then it will send messages back through **Response Queues** that correspond to other individual subscribed clients. (When the Synchronization Service receives an update request, it checks with the Metadata Database for consistency and then proceeds with the update. Subsequently, a notification is sent to all subscribed users or devices to report the file update.)
 
 How can clients efficiently listen to changes happening with other clients? - Long polling. If the server has no new data for the client when the poll is received, instead of sending an empty response, the server holds the request open and waits for response information to become available.
+
+Permission? - We will be storing the permissions of each folder/file in the metadata DB to reflect whether the file of the folder is visible or modifiable by other users.
 
 ## Others
 
