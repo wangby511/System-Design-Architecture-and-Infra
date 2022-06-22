@@ -11,3 +11,5 @@
 [Uber Engineering](https://eng.uber.com/)
 
 [Yelp Blog](https://engineeringblog.yelp.com/)
+
+[Linkedin Blog Engineering](https://engineering.linkedin.com/blog)
