@@ -156,6 +156,8 @@ How can clients efficiently listen to changes happening with other clients? - Lo
 
 Permission? - We will be storing the permissions of each folder/file in the metadata DB to reflect whether the file of the folder is visible or modifiable by other users.
 
+Garbage collection - Lazy object deletion(marked as deleted without actually being deleted), orphan data and corrupted data. Periodically cleaning up with a compaction mechanism. Finally update the metadata with a database transaction.
+
 ## Others
 
 Block storage - good for virtual machines, high-performance applications like database.
