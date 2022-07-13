@@ -70,6 +70,24 @@ QPS peak is 2500 updates/second, this is well within the performance of a single
 
 Also we can store user profiles for top 10 in Redis.
 
+## Scaling
+
+For scaling Redis, we use fixed partition instead of hash partition.
+
+### Fixed Partition
+
+Based on the range of points on the board, for example, 1 ~ 100, 101 ~ 200, ..., 901 ~ 1000. Like bucket sorting algorithm.
+
+### Hash Partition
+
+Redis cluster provides a way to shard data automatically across multiple Redis nodes. It uses CRC16(key) % 16384 instead of consistent hashing function. Each shards has its primary and replicas with a certain number of slots. But the scores are not continuous, therefore it does not provide a straightforward solution for determining the rank of a specific user.
+
+## Other Approach - NoSQL
+
+As the same, it can not provide a straightforward solution for determining the relative rank of a user. But we can do scanning everyday and return a user's relative ranking in percentile.
+
+Cons: we have to query all partitions(shards) to return each top k results and then do merge operation together.
+
 ## Fault Tolerance
 
 Redis is configured with a read replica, and when the main instance fails, that replica is promoted.
