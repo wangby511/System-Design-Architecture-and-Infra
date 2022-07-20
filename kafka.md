@@ -76,7 +76,7 @@ The number of ISRs specifies how many replicas the producer must receive before 
 
 ## Data Delivery semantics
 
-**At-most once** - A message will be delivered not more than once. ACK = 0. Suitable for cases like monitoring metrics.
+**At-most once** - A message will be delivered not more than once. Messages may be lost. No waiting for an acknowledgement(ACK = 0). Suitable for cases like monitoring metrics where a small amount of data loss is acceptable.
 
 **At-least once** - It is acceptable to deliver a message more than once, but no messages should be lost. ACK = 1 or all. If a consumer process the message but fails to commit the offset to the broker, the message will be re-consumed when the consumer restarts, resulting in duplicating.
 
@@ -116,9 +116,9 @@ Send memory data bytes to NIC(Network Interface Card) directly from kernel space
 
 ## Zookeeper & Kafka Controller
 
-**Zookeeper** is commonly used to provide a distributed configuration service, synchronization service and naming registry. It contains metadata storage, state storage and coordination service.
+**Zookeeper** is commonly used to provide a distributed configuration service, synchronization service and naming registry. It contains metadata storage, state storage and coordination service. Zookeeper is a good choice for storing metadata.
 
-Zookeeper is a good choice for storing metadata. Metadata does not change frequently and the data volume is very small. Also it helps with the leader election of the broker cluster.
+**Metadata** stores the configuration and properties of topics including a number of partitions. It does not change frequently and the data volume is very small. Also it helps with the leader election of the broker cluster.
 
 ## Scalability
 
@@ -128,13 +128,15 @@ When the number of partitions decreases, the decommissioned partition **can not 
 
 ## Follow Up
 
-Archive historical data - use HDFS or object storage to store them.
+**Historical data archive** - use HDFS or object storage to store them. We can even replay some historical messages.
 
-Delayed messages & scheduled messages - The producer sends delayed messages to a temporary storage. And when the deliver time is up, it then sends messages to topics. E.g. you want to delay the delivery of messages to a consumer for a specified period of time. For example, finishing the payment within 15 minutes for an order.
+**Delayed messages & Scheduled messages** - The producer sends delayed messages to a temporary storage. And when the deliver time is up, it then sends messages to topics. E.g. you want to delay the delivery of messages to a consumer for a specified period of time. For example, finishing the payment within 15 minutes for an order.
 
-Message filtering - filter by adding tags to the metadata of a message. With a message tag, a broker can filter messages in that dimension.
+**Message filtering** - filter by adding tags to the metadata of a message. With a message tag, a broker can filter messages in that dimension.
 
 **Pull Model** - Advantage of consumers' pulling data from brokers: Consumers can control the consumption speed/rate. We can scale out the consumers. More suitable for batch processing. But keep pulling when there is no data is some wasting resources. Also we should know the pros/cons for push model (like low latency vs. could fall behind & overwhelmed.)
+
+**Retry consumption** - Send failed messages to a dedicated retry topic, so that they can be consumed later.
 
 ## Reference
 
