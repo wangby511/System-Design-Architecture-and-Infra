@@ -98,6 +98,22 @@ Steps of allocating more resources: 1) Apply for extra resources. 2) Extra resou
 
 Reconciliation means comparing different sets of data in order to ensure data integrity.
 
+## Replication Related
+
+Data might be replicated among different database replicas to increase reliability.
+
+If data is replicated, replication lag could cause inconsistent data between the primary database and the replicas.
+
+Make sure all replicas are always in-sync. We could use consensus algorithms such as Paxos and Raft.
+
+## Error Handing
+
+### Retry-able and Non-retry-able errors
+
+In general, we believe unexpected runtime exceptions due to network and infrastructure issues (5XX HTTP statuses) are retry-able. We expect these errors to be transient, and we expect that a later retry of the same request may eventually be successful.
+
+We categorize validation errors, such as invalid input and states (for example, record not found or operation not supported), as non-retry-able (4XX HTTP statuses) — we expect all subsequent retries of the same request to fail in the same manner.
+
 ## Consistent Hashing
 
 Consistent hashing is a special kind of hashing algorithm such that when a hash table is re-sized and consistent hashing is used,only k/n keys need to be remapped on average, where k is the number of keys, and n is the number of slots.
@@ -127,3 +143,5 @@ Lambda architecture is a way of processing massive quantities of data that provi
 [2] <https://medium.com/system-design-blog/long-polling-vs-websockets-vs-server-sent-events-c43ba96df7c1>
 
 [3] <https://blog.csdn.net/zhxdick/article/details/108780884>
+
+[4] <https://medium.com/airbnb-engineering/avoiding-double-payments-in-a-distributed-payments-system-2981f6b070bb>

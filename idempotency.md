@@ -4,6 +4,10 @@ Update 2021/12/19
 
 ## Introduction
 
+What is idempotency?
+
+For an API request to be idempotent, clients can make the same call repeatedly and the result will be the same. In other words, making multiple identical requests should have the same effect as making a single request.
+
 Idempotency is a Web API design principle defined as the ability to apply the same operation multiple times without changing the result beyond the first try.
 
 Solution: Clients can safely retry requests that include **an idempotency key** as long as the second request occurs within 24 hours (expiration time) from the first time they receive the key. To perform an idempotent request, provide an additional ```Idempotency-Key: <key>``` header to the request.
