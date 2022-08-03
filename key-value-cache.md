@@ -20,6 +20,10 @@ Write-back (or Write-behind): When data is updated, it is written only to the ca
 
 Summary: Cache will synchronously (write through) or asynchronously (write behind) write data to the backing database.
 
+### Write-around
+
+Using the write-around policy, data is written only to the backing store without writing to the cache. So, I/O completion is confirmed as soon as the data is written to the backing store.
+
 ## Cache-Aside Pattern
 
 ### Read-aside
@@ -30,13 +34,13 @@ Application requests data from cache. If the data is not available, application 
 
 Write to the database first and then invalidate the cache entry.
 
-## Evict Policy
+## Cache Elimination/Evict Policy
 
-LRU(Least Recently Used) - check time, and evict the most recently used entries and keep the most recently used ones.
+**LRU(Least Recently Used)** - check time, and evict the earliest used entries and store the most recently used ones near the top of the cache.
 
-LFU(Least Frequently Used) - check frequency, and evict the most frequently used entries and keep the most frequently used ones.
+**LFU(Least Frequently Used)** - check frequency, and evict the smallest frequency used entries and keep the most frequently used ones. This method is not often used because it cannot be responsible for an entry cache that has not been accessed for a long time after the initial high access rate.
 
-ARC(Adaptive replacement cache) - it has a better performance than LRU. It is achieved by keeping both the most frequently and frequently used entries, as well as a history for eviction (keeping MRU+MFU+eviction history).
+**ARC(Adaptive replacement cache)** - it has a better performance than LRU. It is achieved by keeping both the most frequently and frequently used entries, as well as a history for eviction (keeping MRU+MFU+eviction history).
 
 ![image](https://media-exp1.licdn.com/dms/image/C5622AQF5TD73OvsLOw/feedshare-shrink_800/0/1646325427703?e=2147483647&v=beta&t=yyRtGO7RbciAsL-o1pUnohWTRaEiN4xnJ2HBRzay-ho)
 

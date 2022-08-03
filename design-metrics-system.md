@@ -50,7 +50,7 @@ Another feature of a strong time-series database is efficient aggregation and an
 
 ## Infra Graph
 
-[**Metrics Source**] -> [**Metrics Collector**] -> [**Time Series DB**] <-> [**Query Services**] <- [**Alerting System**] & [**Visualization System**]
+[**Metrics Source**] -> [**Metrics Collector**] -> [**Kafka Queue**] -> [**Data Consumers**] [**Time Series DB**] <-> [**Query Services**] <- [**Alerting System**] & [**Visualization System**]
 
 [**Alerting System**] -> Email, Text Message, HTTPS endpoints.
 

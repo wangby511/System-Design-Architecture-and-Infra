@@ -30,6 +30,10 @@ Availability - simple measure of the percentage of time that a system, service, 
 
 **Rocks DB** - The basic constructs of RocksDB are memtable, an in-memory data-structure to ensure very low latency on reads. sorted static table files (SST files): where data is finally persisted on disk.
 
+**MD5** - MD5 hashes are 128 bits in length and generally represented by 32 hex digits.
+
+**Merkle Tree** - Merkle Trees are used in Dynamo to identify any inconsistencies between nodes. Individual nodes maintain separate Merkle Trees for the key ranges that they store and they can be used to quickly work out if data is consistent and if not, identify which pieces of information need to be synchronized.
+
 ## Common Component
 
 ### Load Balancer
@@ -120,9 +124,15 @@ Consistent hashing is a special kind of hashing algorithm such that when a hash 
 
 Using the same hash function like SHA-1, we map the keys and servers into a circular ring. To determine which server a key is stored on, we go clockwise from the key position on the ring until a server is found. When a server is removed or added, only a small fraction of keys require re-distribution with consistent hashing.
 
-### Virtual Nodes
+### Virtual Nodes (Vnode)
 
 To further achieve more uniform/balanced distribution, we introduce virtual nodes. A real server can have multiple virtual nodes. With virtual nodes, each server is responsible for multiple partitions.
+
+The hash range is divided into multiple smaller ranges, and each physical node is assigned multiple of these smaller ranges. Each of these sub-ranges is called a **Vnode**.
+
+Practically, Vnodes are randomly distributed across the cluster and are generally non-contiguous so that no two neighboring Vnodes are assigned to the same physical node. Furthermore, nodes do carry replicas of other nodes for fault-tolerance.
+
+Advantages of Vnode: 1) spread the load more evenly. 2) make it easier to maintain a cluster containing heterogeneous machines. 3) probability of hot-spots is much less (than that we use big range per node).
 
 ### Cons
 

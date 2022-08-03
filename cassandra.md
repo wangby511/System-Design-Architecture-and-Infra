@@ -1,5 +1,9 @@
 # Cassandra
 
+## Introduce
+
+Apache Cassandra is an open-source, NoSQL, wide column data store that can quickly ingest and process massive amounts of data.
+
 ## Write in Cassandra
 
 Partitioning Key — each table has a Partitioning Key. It helps with determining which node in the cluster the data should be stored.

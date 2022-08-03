@@ -6,11 +6,15 @@ A notification system is a system to send notification alerts or information upd
 
 ## Functional Requirements
 
+The system should be able to send notifications to the subscribed consumers.
+
 What types of notifications does the system support? Push notifications, SMS messages and email.
 
 Support iOS, Android and laptops.
 
-Triggered by which sub-system?
+It should be an isolated system that is easy to integrate into an existing system.
+
+### Other Factors
 
 Can users choose to opt-out/unsubscribe?
 
@@ -22,7 +26,7 @@ Are we going to use 3rd party services or in-app?
 
 Available: Always available because send critical information is needed to sent to customers.
 
-Latency: A near real-time system and slight delays are acceptable.
+Latency: Latency should be low.
 
 (Pluggable if using 3rd party service: Our notification system should allow additional channels without much effort and redesign.)
 
@@ -78,7 +82,9 @@ Note: A user can own multiple devices or terminals.
 
 User Table: [userId], email, phone number, timestamp, ...
 
-Device Table: [deviceId], userId, device token, timestamp, ...
+(Device Table: [deviceId], userId, lastLoginTimestamp, ...)
+
+Also there will be Topics and Subscriptions information tables.
 
 Write heavy, read light - For NoSql, we could choose Cassandra, log-structured merge tree storage engine
 
@@ -90,7 +96,7 @@ It queries the database or cache to fetch data needed to render a notification. 
 
 Message Queues: **Decouple system components** and serves as **buffers when high volumes** of notifications need to be sent out. Each notification type is assigned with a distinct message queue so that an outage in one service will not affect others. (Asynchronous way of handling the messages, messages are buffered in the queue till they are picked by the workers for processing. Different queues are used for different channels like email, SMS, etc.)
 
-Workers: The set of servers that pull messages from the messaging queue and process them one by one by sending them to corresponding 3rd party services.
+Handlers: Various handlers are connected after to the messaging queue. The handler picks up the messages and sends them to the subscribers. Each handler is assigned to handle requests from a specific message type, e.g. the Email handler, the SMS handler.
 
 Third-party Services: Send notifications to users' devices.
 
@@ -104,7 +110,7 @@ A async thread scans the DB for the records newly saved with PENDING status.
 
 ![img](https://www.durichitayat.net/static/f533dc948b73e1481c75f7cc4a0de13f/e3189/push-notification-service.png)
 
-![img](https://systeminterview.com/imgs/top10/notification.png)
+![img](https://miro.medium.com/max/875/0*Lc7xwqKOC-LTL6CL)
 
 ## Others
 
@@ -126,11 +132,13 @@ Client side - store a rotation of message IDs in an only period of time (Like re
 
 Fill in the content with user name, date and detailed activity words.
 
-### Frequency
+### Rate Limiter
 
-Producer side - Add rate limiter, AuthZ and AuthN modules.
+The rate limiter checks the messages for two things:
 
-Consumer - Users can choose to mute or opt-out specific channel.
+* If the publisher is allowed to send that many requests.
+
+* If the subscriber can receive as many notifications. Consumer/Users can choose to mute or opt-out specific channel.
 
 ### User Setting
 
@@ -150,6 +158,8 @@ In-order: E.g. FIFO queue + hash on userId. The same person's messages are going
 
 ### Priority of Messages
 
+Three queues are maintained on the basis of priority: high, medium, and low. The events from the high priority queue are picked first with a fast rate, then the medium priority and then the low priority at a slower rate.
+
 1 OTP password for login
 
 2 Transaction notification
@@ -159,6 +169,8 @@ In-order: E.g. FIFO queue + hash on userId. The same person's messages are going
 ### Monitoring/Analytics Service
 
 Tracking and monitoring from users' feedback by collecting engagement statistics like open rate and click through rate.
+
+A service called “Notification Tracking” continuously reads events from the messaging queue. It maintains notifications metadata for system analytics. It is composed of three elements: Message queue, Notification Tracker, Cassandra Cluster and Analytics Service.
 
 ### Follow-up
 
@@ -181,3 +193,5 @@ As long as we use the 3rd part service like APNs, we can not rely on customers' 
 [3] <https://www.youtube.com/watch?v=C3iLSm_G5EY>
 
 [4] System Design Interview. Alex Xu. Chapter 10. Design A Notification System.
+
+[5] <https://medium.com/double-pointer/system-design-interview-notification-service-86cb5c266218>

@@ -4,17 +4,25 @@ Asynchronous Task Framework (ATF) - in Dropbox Blog
 
 READ 2022/03/03
 
+UPDATED 2022/08/01
+
 ## Requirements
 
-Be able to support immediate or task scheduling at a specified time
-
-Be able to handle 10,000 async tasks per second
+A job can be scheduled for one time or multiple executions (cron job) by other services/microservices.
 
 Be able to handle with different priority of execution of tasks - Tasks with higher priority should get executed first as possible
 
-Clients can query the status of a scheduled/running task
+Clients can query the status of a scheduled/running task - Results of job executions are stored and can be queried.
 
-Highly (99.9%) available
+## Non-Functional Requirements
+
+One hundred million tasks execution per day. Be able to handle 1,000 async tasks per second
+
+Highly available
+
+Latency - the time between the scheduled time and task starting time should be minimal.
+
+The same task shoule not be running multiple times at the same scheduled time.
 
 ## System Guarantees
 
@@ -54,7 +62,7 @@ Each host has a single Controller process and multiple executor processes.
 
 ### Dead Letter Queue
 
-Create dead letter queues filled with such misbehaving tasks which are got stuck in infinite retry loops due to occasional bugs in lambda logic
+Create dead letter queues filled with such misbehaving tasks which are got stuck in infinite retry loops due to occasional bugs in logic, or retried failed for certain times.
 
 ## Lifecycle of a task
 
@@ -70,8 +78,30 @@ Create dead letter queues filled with such misbehaving tasks which are got stuck
 
 * Upon getting Heartbeat and TaskStatus RPC calls, HSC updates the EdgeStore entity and assoc.
 
+## Data Model
+
+### Jobs
+
+job_id, description, name, cron_definition,(or) one_time_scheduling, url, status, created_user, created_time, ...
+
+### Job Execution
+
+execution_id, job_id, scheduled_time, start_time, status, ...
+
+#### Cron Strategy
+
+0 0 12 * * ? - Fire at 12pm (noon) every day
+
+0 15 10 ? * * - Fire at 10:15am every day
+
 ## State Machine Of Task State Transition
 
 ![img](https://dropbox.tech/cms/content/dam/dropbox/tech-blog/en-us/2020/11/atf/diagrams/Techblog-ATF-720x225px-2.png)
 
-<https://dropbox.tech/infrastructure/asynchronous-task-scheduling-at-dropbox>
+## Reference
+
+[1] <https://dropbox.tech/infrastructure/asynchronous-task-scheduling-at-dropbox>
+
+[2] <https://xunhuanfengliuxiang.gitbooks.io/system-desing/content/design-job-scheduler.html>
+
+[3] <https://leetcode.com/discuss/general-discussion/1082786/System-Design%3A-Designing-a-distributed-Job-Scheduler-or-Many-interesting-concepts-to-learn>
