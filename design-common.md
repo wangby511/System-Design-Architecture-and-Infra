@@ -32,7 +32,15 @@ Availability - simple measure of the percentage of time that a system, service, 
 
 **MD5** - MD5 hashes are 128 bits in length and generally represented by 32 hex digits.
 
-**Merkle Tree** - Merkle Trees are used in Dynamo to identify any inconsistencies between nodes. Individual nodes maintain separate Merkle Trees for the key ranges that they store and they can be used to quickly work out if data is consistent and if not, identify which pieces of information need to be synchronized.
+**Merkle Tree** - Merkle Trees are used in Dynamo to identify any inconsistencies between nodes/replicas. A Merkle tree is a binary tree of hashes, where each internal node is the hash of its two children, and each leaf node is a hash of a portion of the original data. Individual nodes maintain separate Merkle Trees for the key ranges that they store and they can be used to quickly work out if data is consistent and if not, identify which pieces of information need to be synchronized.
+
+Pros: It can do calculation without requiring nodes to download the entire tree or the whole data set.
+
+**Last-write-wins (LWW)** - Based on the wall-clock timestamp, the later writes win and overwrite the data written by the previous client. Big cons: LWW can easily end up losing data.
+
+**Gossip protocol** is a peer-to-peer communication mechanism in which nodes periodically exchange state information about themselves and other nodes they know about. Each node initiates a gossip round every second to exchange state information about itself and other nodes with one other random node.
+
+Seed nodes are fully functional nodes and can be obtained either from a static configuration or a configuration service. This concept is introduced to avoid **logical partitions** (E.g. Nodes A and B joins the ring together but they are not immediately aware of each other).
 
 ## Common Component
 
