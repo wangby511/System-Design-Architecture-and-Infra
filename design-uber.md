@@ -10,23 +10,31 @@ Uber enables its customers to book drivers for taxi rides. Uber drivers use thei
 
 Drivers need to notify the service about their current location and their availability to pick passengers regularly.
 
-Passengers get to see all nearby available drivers.
+Passengers can **see all nearby available drivers.**
 
-Customer can request a ride; nearby drivers are notified that a customer is ready to be picked up.
+Customer can **request a ride** by entering pickup & drop-off location and the nearby drivers are notified that a customer is ready to be picked up.
+
+The driver can choose to **accept or ignore** this ride.
 
 Once a driver and a customer accept a ride, they share the same location until the trip finishes.
 
 Upon reaching the destination, the driver marks the request as complete to become available for the next ride.
 
+Generate the receipt and continue payment after the ride.
+
 Summary: request a ride, accept/reject the ride.
 
 ## Non-Functional Requirements
+
+Scalability
+
+Availability
 
 ## Capacity Estimation
 
 We have 300M customer and 1M drivers, with 1M daily active customers and 500K daily active drivers.
 
-We have 1M daily rides.
+We have 10M rides per day. About 100 rides per second.
 
 All active drivers notify their current location every three seconds.
 
@@ -40,11 +48,7 @@ driverId(primary key), driver name, latitude, longitude, last updated time.
 
 customerId(primary key), customer name, email, phone, photo url, ...
 
-### Customer Location Table
-
-customerId(primary key), customer name, latitude, longitude, last updated time.
-
-### Trip Table
+### Trip Record Table
 
 tripId(primary key), driverId, customerId, pick up location, destination, status, routeId, start time, end time...
 
@@ -71,6 +75,80 @@ Change status in Trip Table, like PICKING -> PICKED.
 ### Trip End
 
 Change status in Driver Table, let the driver available again, and Trip Table like PICKED -> END. Send to payment service for charge fee.
+
+## Details
+
+### QuadTree
+
+Unlike designing Yelp, here we need huge amount of fast updates in drivers' locations by removing a driver from the previous grid and move/reinsert to the current location grid.
+
+### Hash Table
+
+```bash
+DriverID (3 bytes - 1 million drivers)
+
+Old latitude (8 bytes)
+
+Old longitude (8 bytes)
+
+New latitude (8 bytes)
+
+New longitude (8 bytes)
+
+(May be we should add lastUpdatedTimeStamp, newTimeStamp)
+```
+
+Total = 35 bytes, the total memory is 1 million * 35 bytes = 35 MB
+
+If we receive this information (19 Bytes) every three seconds from 500K daily active drivers, we will be getting 9.5MB per three seconds.
+
+Since all this information can easily be stored on **one server** but, for scalability, performance, and fault tolerance, we should distribute DriverLocationHashTable onto multiple servers. And we can update QuadTree server every 10 or 15 seconds.
+
+### How to efficiently broadcast?
+
+We can build our Notification service on a publisher/subscriber model.
+
+Maintain a list of customers (subscribers) interested in knowing the location of a driver and, whenever we have an update in DriverLocationHashTable for that driver.
+
+Suppose a driver has 5 subscribed customers, we will need 500K *3 + 500K* 5 * 8 ~= 21 MB of memory.
+
+bandwidth 5 *500K* 19 bytes = 47.5 MB/s
+
+### Push mode or Pull mode
+
+* For the Notification service, we can either use **HTTP long polling** or **push notifications**.
+
+* For how does the customer know what drivers are near-by? **Pull** mode is simpler here.
+
+Clients can send their current location (only if then open app and they are going to make a request), and the server will find all the nearby drivers from the QuadTree to return them to the client. The client can refresh their screen and query every 5 seconds e.g. to reflect the current positions of the drivers.
+
++ Save resources for those inactive users.
+
+## Flows And Steps
+
+### How would "Request Ride" use case work?
+
+The customer will put a request for a ride.
+
+One of the [**Aggregator servers**] will take the request and asks [**QuadTree servers**] to return nearby drivers.
+
+The [**Aggregator server**] collects all the results and sends notifications to those drivers simultaneously by using [[**Notification Server**].
+
+The driver accepts the request first will be assigned the ride. The other drivers will receive an out-of-date request. If none of the three drivers respond, the Aggregator will pick another list of nearby drivers.
+
+Once a driver accepts a request, the customer is notified. The customer can see the specific driver's location.
+
+## Fault Tolerance
+
+Primary & Secondary with persistent storage for recovery.
+
+## Follow Up
+
+### How will we handle clients on slow and disconnecting networks?
+
+Adjust the frequency of client's request based on client side's internet speed?
+
+Client lost contact? Show "Internet Not Connected" on app side. Check current status of Trip Table and Driver/Customer Table to see if there is an unfinished trip.
 
 ## Reference
 

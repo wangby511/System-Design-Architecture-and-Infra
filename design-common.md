@@ -46,6 +46,8 @@ Seed nodes are fully functional nodes and can be obtained either from a static c
 
 ### Load Balancer
 
+**Be Aware in Interview! - Only add load balancer when there are multi servers (One server is not enough for traffic)**.
+
 Load balancer helps to spread the traffic of requests across a cluster of servers to improve responsiveness and availability of applications, websites or databases.
 
 Typically we can try to balance the load at each layer of the system. We can add LBs at three places: 1) Between users and web servers. 2) Between web servers and an internal platform layer, like application servers or cache servers. 3) Between internal platform layer and database.
