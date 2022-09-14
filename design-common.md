@@ -14,11 +14,21 @@ Knowledge base
 
 ## Common Non-Functional Requirements
 
-Reliability - probability a system will fail in a given period. A distributed system is considered reliable if it keeps delivering its services even when one or several of its software or hardware components fail.
+### Reliability
 
-Scalability - capability of a system to handle or manage growing and increasing demands or requests.
+Reliability is the probability a system will fail in a given period. A distributed system is considered reliable if it keeps delivering its services even when one or several of its software or hardware components fail.
 
-Availability - simple measure of the percentage of time that a system, service, or a machine remains operational under normal conditions. (If a system is reliable, it is available. However, if it is available, it is not necessarily reliable. E.g. if a system was launched without any information security testing.)
+### Scalability
+
+According to Bondi et al., "Scalability is the capability of a system, network, or process to handle a growing amount of work, or its potential to be enlarged to accommodate that growth.". It measures the capability of a system to handle or manage growing and increasing demands or requests.
+
+Solution: **Vertical scaling** - adding resources (memory, CPU, disk, etc.) to a single node and **Horizontal scaling** - adding more nodes to the system.
+
+### Availability
+
+Availability is the probability/percentage of time of a system to work as required, when required, during a mission. (If a system is reliable, it is available. However, if it is available, it is not necessarily reliable. E.g. if a system was launched without any information security testing.)
+
+Solution: **Redundancy** is one of the widely used mechanisms to achieve higher availability. It refers to storing data into multiple, redundant computers.
 
 ## Common Concepts
 
@@ -46,7 +56,7 @@ Seed nodes are fully functional nodes and can be obtained either from a static c
 
 ### Load Balancer
 
-**Be Aware in Interview! - Only add load balancer when there are multi servers (One server is not enough for traffic)**.
+**Be Aware of this during Interview! - Only add load balancer when there are multi servers (One server is not enough for traffic)**.
 
 Load balancer helps to spread the traffic of requests across a cluster of servers to improve responsiveness and availability of applications, websites or databases.
 
@@ -54,13 +64,17 @@ Typically we can try to balance the load at each layer of the system. We can add
 
 Health Checks - "health check" regularly attempts to connect to backend servers to ensure that servers are listening before a load balancer forwards traffic to that server. Also called "heart beat check".
 
-The load balancer can be **a single point of failure**. To overcome this, a second load balancer can take over the first failure one in the event the main load balancer fails.
+The load balancer can be **A single point of failure**. To overcome this, we should have **a second, standby load balancer** which can take over the first failure one in the event the main load balancer fails. This is called [mirrored pair](https://www.loadbalancer.org/blog/easiest-way-to-reduce-downtime-avoiding-a-single-point-of-failure/) which gives us an extra layer of **redundancy** and protection against downtime.
+
+Difference with API Gateway: An API gateway connects microservices or different API calls, while load balancers redirect multiple instances of the same microservice components or the same API call as they scale out to different machines.
 
 ### Decouple
 
 Use a queue - de-coupling the services and act as a buffer in case throttling.
 
 A common solution is to use/adopt a message queue (Kafka) to decouple producers and consumers. This makes the whole process asynchronous and producers/consumers can be scaled independently.
+
+The overall architecture could be microservices-based with heavy usage of the publisher-subscriber pattern, involving a queuing technology like Kafka, RabbitMQ, ActiveMQ, Amazon SNS, or Amazon MQ. Each microservice can talk with another one by using this model of publishing a message and subscribing to channels or topics. This mechanism **de-couples** services from each other in the best possible way.
 
 ## Normal Questions
 
@@ -84,11 +98,13 @@ Steps of allocating more resources: 1) Apply for extra resources. 2) Extra resou
 
 ## Delivery Protocols
 
-**Long Polling** - Long polling is technique where the server elects to hold a client connection open for as long as possible, delivering a response only after data becomes available or timeout threshold has been reached.
+**Long Polling** - Long polling is technique where the server elects to hold a client connection open for as long as possible, delivering a response only after data becomes available or timeout threshold has been reached. Therefore, Long Polling is **Half-Duplex** meaning that a new request-response cycle is required each time the client wants to communicate something to the server. However, it is more resource intensive and can come with a latency overhead. Also reliable message ordering can be an issue.
 
-**WebSocket** - WebSocket is a computer communication protocol which provides full-duplex communication channels. Suitable for bi-directional real-time communication.
+**WebSocket** - A WebSocket connection is a thin transport layer built on top of a device’s TCP/IP stack. Suitable for bi-directional real-time communication. **Full-duplex** asynchronous messaging is supported so that both the client and the server can stream messages to each other independently. However, WebSockets don’t automatically recover when connections are terminated.
 
-**Server-Sent Events(SSE)** - Unlike WebSockets, Server-Sent Events are a one-way communication channel where events flow from server to client only. Server-Sent Events allows browser clients to receive a stream of events from a server over an HTTP connection without polling.
+How many WebSocket connection can a server handle? - By default, a single server can handle 65,536 socket connections just because it's the max number of TCP ports available. But the actual limit is often more like 20k.
+
+**Server-Sent Events(SSE)** - Server-Sent Events are a one-way communication channel where events flow from server to client only. Server-Sent Events allows browser clients to receive a stream of events from a server over an HTTP connection without polling.
 
 ## Process vs Thread
 
@@ -150,6 +166,12 @@ Minimized keys are re-distributed when servers are added or removed.
 
 It is easy to scale horizontally because data are distributed more evenly.
 
+## Content Delivery Network (CDN)
+
+A CDN is a system of distributed servers that deliver web content to a user based on the user’s geographic locations, the origin of the web page, and a content delivery server.
+
+We can put more popular items like videos into CDN and leave those less popular items just into various data centers.
+
 ## Lambda Architecture
 
 Lambda architecture is a way of processing massive quantities of data that provides access to batch-processing and stream-processing methods with a hybrid approach [3].
@@ -165,3 +187,7 @@ Lambda architecture is a way of processing massive quantities of data that provi
 [3] <https://blog.csdn.net/zhxdick/article/details/108780884>
 
 [4] <https://medium.com/airbnb-engineering/avoiding-double-payments-in-a-distributed-payments-system-2981f6b070bb>
+
+[5] <https://ably.com/blog/websockets-vs-long-polling>
+
+[6] <https://dev.to/kevburnsjr/websockets-vs-long-polling-3a0o>

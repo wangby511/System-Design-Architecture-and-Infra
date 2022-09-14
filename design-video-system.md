@@ -166,7 +166,11 @@ The better solution might be elastic search.
 
 ## CDN
 
-A CDN is a system of distributed servers that deliver web content to a user based on the user’s geographic locations. It replicates the content in multiple places around the world.
+A CDN(Content Delivery Network) is a system of distributed servers that deliver web content to a user **based on the user’s geographic locations**. It replicates the content in multiple places around the world.
+
+So in this case there’s a better chance of videos being closer to the user and, with fewer hops, videos will stream from a friendlier network.
+
+How to reduce the cost/expense of CDN? Replaced with hot/popular videos like LRU, LFU. Or we can optimize bandwidth. Less popular videos (1-20 views per day) that are not cached by CDNs can be served by our video servers in various data centers.
 
 ## Error Handling
 
@@ -189,8 +193,6 @@ Where to store thumbnail pictures? - We can use [BigTable](https://en.wikipedia.
 Separate write and read traffic. For newly added videos, we can upload them as well as metadata to primary server. And it takes some time to sync up to secondary/follower servers. This is eventual consistency and a latency before the new video is available is acceptable.
 
 Multiple platforms are supported.
-
-How to reduce the cost/expense of CDN? Replaced with hot/popular videos like LRU, LFU. Or we can optimize bandwidth. Less popular videos (1-20 views per day) that are not cached by CDNs can be served by our video servers in various data centers.
 
 How to de-duplicate? Use checksum of the whole original video file. Inline de-duplication will save us a lot of resources - As soon as any user starts uploading a video, our service can run video matching algorithms to find if there are any duplications.
 
