@@ -22,7 +22,7 @@ Upon reaching the destination, the driver marks the request as complete to becom
 
 Generate the receipt and continue payment after the ride.
 
-Summary: request a ride, accept/reject the ride.
+**Summary: See drivers in your nearby area; ETA and approximate price; Book a ride; Location tracking.**
 
 ## Non-Functional Requirements
 
@@ -122,9 +122,37 @@ bandwidth 5 *500K* 19 bytes = 47.5 MB/s
 
 Clients can send their current location (only if then open app and they are going to make a request), and the server will find all the nearby drivers from the QuadTree to return them to the client. The client can refresh their screen and query every 5 seconds e.g. to reflect the current positions of the drivers.
 
-+ Save resources for those inactive users.
+Pros: Save resources for those inactive users.
 
-## Flows And Steps
+## Components of Services
+
+## Ride Request Service
+
+Customers can book a request.
+
+## Drivers Service
+
+Drivers' locations will be reported every a few seconds.
+
+## Location/Map Service
+
+The location service will store the location information in a Cassandra. It also talks to a map service to figure out which area the driver belongs to and update the mapping of which drivers belong in which area.
+
+## Notification Service
+
+Notify both drivers and customers. All the active drivers who are ready to accept trips are connected to a WebSocket handler. Websocket handlers will keep an open connection with the drivers to get location pings or send notifications about trips.
+
+## Trip Service & DB
+
+The Trip Service exposes all trip-related APIs, like get or list ride trip(s).
+
+Trip DB, also known as Ride DB. And we can have some archived data to move to Ride History DB.
+
+## Payment Service & DB
+
+MYSQL based DB. The payment service will also be connected with a payment gateway.
+
+## Steps
 
 ### How would "Request Ride" use case work?
 

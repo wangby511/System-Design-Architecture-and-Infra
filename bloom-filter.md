@@ -32,7 +32,7 @@ Databases like Apache Cassandra, Google BigTable and Apache HBase optimize perfo
 
 A bloom filter is a data structure (similar to hash table) designed to tell you, rapidly and memory-efficiently, whether an element is present in a set.
 
-It could be **false positive**, but false negatives are impossible.
+It could be **false positive**, but false negatives are impossible. Therefore it can avoid **cache miss attack**(A scenario that a user queries a key which doesn't exist in the database nor cached. So the database can easily be overloaded.).
 
 However, increasing the number of hash functions also adds latency to the insertion and lookup operations of the bloom filter. The time complexity for a bloom filter is O(k) where k is the number of hash functions involved.
 

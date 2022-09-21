@@ -12,17 +12,23 @@ The clients read data from the database via the cache layer. The cache returns w
 
 ### Write-through
 
-When data is updated, it is written to both the cache and the database. This mode is easy for operation but is slow in data writing because data has to be written to both the cache and database. The cache returns when it finishes the database write.
+Under this scheme, data is written into the cache and the corresponding database simultaneously. When data is updated, it is written to both the cache and the database. We will have complete data consistency between the cache and the storage.
+
+However, this scheme has the disadvantage of higher latency for write operations, since every write operation must be done twice before returning success to the client.
 
 ### Write-back
 
-Write-back (or Write-behind): When data is updated, it is written only to the cache and the cache returns immediately. The modified data is written to the back-end storage only when data is removed from the cache. This mode has fast data write speed but data will be lost if a power failure occurs before the updated data is written to the storage.
+Write-back (or Write-behind): When data is updated, it is written only to the cache and the cache returns immediately. The modified data is written to the back-end storage only when data is removed from the cache. This mode has fast data write speed. This results in low-latency and high-throughput for write-intensive applications.
+
+However, the data will be lost if a power failure occurs before the updated data is written to the storage.
 
 Summary: Cache will synchronously (write through) or asynchronously (write behind) write data to the backing database.
 
 ### Write-around
 
 Using the write-around policy, data is written only to the backing store without writing to the cache. So, I/O completion is confirmed as soon as the data is written to the backing store.
+
+However, it has the disadvantage that a read request for recently written data will create a "cache miss" and must be read from slower back-end storage and experience higher latency.
 
 ## Cache-Aside Pattern
 

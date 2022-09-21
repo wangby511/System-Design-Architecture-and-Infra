@@ -10,22 +10,26 @@ The vast majority of relational databases are ACID(Atomicity, Consistency, Isola
 
 ### Storage
 
-SQL: Store data in tables.
+SQL: Store data in tables. Relational databases store data in rows and columns. Each row contains all the information about one entity and each column contains all the separate data points.
+
 NoSQL: It has different data storage models. See Most common types of NoSQL below.
 
 ### Schema
 
 SQL: Each record conforms to a fixed/predefined schema. Schema can be altered, but it requires modifying the whole database.
+
 NoSQL: Unstructured and have a dynamic schema.
 
 ### Querying
 
 SQL: Use SQL (structured query language) for defining and manipulating the data.
+
 NoSQL: UnQL (unstructured query language). Different databases have different syntax.
 
 ### Scalability
 
 SQL: Vertically scalable (by increasing the horsepower: memory, CPU, etc) and expensive. Harder to do scale across multiple servers (can be challenging and time-consuming).
+
 NoSQL: Horizontally scalable (by adding more servers) and cheap. Many NoSQL DB also distribute data automatically.
 
 ### ACID
@@ -33,17 +37,16 @@ NoSQL: Horizontally scalable (by adding more servers) and cheap. Many NoSQL DB a
 Atomicity, consistency, isolation, durability
 
 SQL: ACID compliant. Data reliability. Guarantee of transactions.
+
 NoSQL: Most sacrifice ACID compliance for performance and scalability.
 
 ## Which one to choose
 
 ### SQL
 
-ACID compliant: data reliability and safe guarantee.
+We need to ensure ACID compliance like many e-commerce and financial applications.
 
-Predefined schema: Data is structured and unchanging in the long term.
-
-In most common situations, SQL databases only support vertically scalable.
+Our data is structured and unchanging.: Data is structured and unchanging in the long term.
 
 ### NoSQL database
 
@@ -62,12 +65,13 @@ e.g. Redis, Voldemort and Dynamo
 
 #### Document Databases
 
-In these databases data is stored in documents
+In these databases data is stored in documents. Each document can have an entirely different structure.
 e.g. CouchDB, MongoDB
 
 #### Wide-Column Databases
 
-Instead of ‘tables,’ in columnar databases we have column families, which are containers for rows. (Unlike relational databases, we don’t need to know all the columns up front, and each row doesn’t have to have the same number of columns.)
+A wide-column database is a type of NoSQL database in which the names and format of the columns can vary across rows, even within the same table. Wide-column databases are also known as column family databases. Because data is stored in columns, queries for a particular value in a column are very fast, as the entire column can be loaded and searched quickly. Related columns can be modeled as part of the same column family.
+
 e.g. Cassandra and HBase.
 
 #### Graph Databases
@@ -80,3 +84,5 @@ e.g. Neo4J and InfiniteGraph.
 [1] <https://aaronice.gitbook.io/system-design/distributed-systems/sql-vs-nosql>
 
 [2] Move from <https://wangby511.github.io/2021/10/29/New-System-Design/> in 2022/1/8.
+
+[3] <https://www.scylladb.com/glossary/wide-column-database/>

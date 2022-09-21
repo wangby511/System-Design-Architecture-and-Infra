@@ -8,7 +8,7 @@ UPDATED 2022/08/01
 
 ## Requirements
 
-A job can be scheduled for one time or multiple executions (cron job) by other services/microservices.
+A job can be scheduled for one time or multiple executions (cron job) by other services/micro-services.
 
 Be able to handle with different priority of execution of tasks - Tasks with higher priority should get executed first as possible
 
@@ -22,7 +22,7 @@ Highly available
 
 Latency - the time between the scheduled time and task starting time should be minimal.
 
-The same task shoule not be running multiple times at the same scheduled time.
+The same task should not be running multiple times at the same scheduled time.
 
 ## System Guarantees
 

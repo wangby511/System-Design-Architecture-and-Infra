@@ -1,4 +1,4 @@
-# System Design - Doordash
+# System Design - DoorDash
 
 CREATED 2022/08/29
 
@@ -36,13 +36,15 @@ Receive notifications about the available orders in the area
 
 Choose to pick up an order & should be able to know when the order is available for pickup
 
+Notify the server their locations every a few seconds and shown to the users and restaurants
+
 (Inform the customer/restaurant of any problems they encounter while executing the order pickup/delivery)
 
 ## Non-Functional Requirements
 
 Latency - should be acceptable and not too high.
 
-Consistency - should be critical on orders. But thecconsistency requriement is not high for menu updates (eventual consistency).
+Consistency - should be critical on orders. But the consistency requirement is not high for menu updates (eventual consistency).
 
 Availability - high
 
@@ -96,7 +98,7 @@ Based on:
 
 * pure RestaurantId
 
-* Menu items/cuisines/dishes - cons: Need to query a few partitions to retrieve a resaurant's full menu
+* Menu items/cuisines/dishes - cons: Need to query a few partitions to retrieve a restaurant's full menu
 
 * Combination of area code and RestaurantId
 
@@ -112,7 +114,7 @@ Four actors - customer, restaurant, DoorDasher and admin.
 
 **Elasticsearch** has a Geo-distance query, which can be leveraged to return all the restaurants/menus that the user is searching for based on a defined radius from the user’s location.
 
-Step 1 - When the restaurants create/update profiles/menu/items to [**Restaurent Profile Service**], it will not only do CRUD to database, but also post an event to the queue.
+Step 1 - When the restaurants create/update profiles/menu/items to [**Restaurant Profile Service**], it will not only do CRUD to database, but also post an event to the queue.
 
 Step 2 - The [**Data Indexer**] then picks up the event, runs a query against the database to formulate a document as per the correct format, and posts the data into the search cluster.
 
@@ -122,9 +124,9 @@ Step 3 - The [**Restaurant Search Service**] query the search cluster or look up
 
 Order placement is transactional in nature, the best idea is to use a relational database for Orders DB.
 
-Mainly for users to place orders. Also the users can retrive history or orders as well as check the status of the order.
+Mainly for users to place orders. Also the users can retrieve history or orders as well as check the status of the order.
 
-### Order Fulfilment Service
+### Order Fulfillment Service
 
 Mainly for restaurants to update order status (CREATING -> READY_FOR_PICKUP) and for doordashers to update status (READY_FOR_PICKUP -> DISPATCHING -> DELIVERED).
 
@@ -178,14 +180,20 @@ Since there are multiple instances running for every service.
 
 ## Cache
 
-Images of restaurants and dishes could be cached. The cache will hold the popular or most-ordered menu items/restaurants in a particular area.
+Images of restaurants and dishes menu could be cached. The cache will hold the popular or most-ordered menu items/restaurants in a particular area. Besides restaurant information, customer information and driver information also can be cached.
 
-Redis, Memcached.
+Use Example: Redis, Memcached.
 
-Least Recently Used (LRU) or Least Frequently Used (LFU) algorithm.
+Policy: Least Recently Used (LRU) or Least Frequently Used (LFU) algorithm.
 
 CDN is not useful here.
+
+## Protocol
+
+WebSockets is best for communication between the driver's app and servers in this case since the client will send a lot of location pings, and the server needs to notify the driver when a new order comes in.
 
 ## Reference
 
 [1] <https://www.educative.io/courses/system-design-interview-doordash>
+
+[2] <https://leetcode.com/explore/learn/card/system-design>

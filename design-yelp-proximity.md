@@ -24,9 +24,11 @@ Low Latency - Users should be able to access information as fast as possible. A 
 
 500M places and 100K queries per second (QPS)
 
+Assume a 20% growth in the number of places and QPS each year
+
 ## Database Schema
 
-### Database of Places
+### Place Table Schema
 
 LocationID 8 bytes (hash key)
 
@@ -44,17 +46,19 @@ Address 32 bytes
 
 TotalRating 1 byte
 
-### Business Profile DB
+1 KB per place x 500Million ~= 500GB
 
-Place DB
+### All Tables Schema
+
+* Places Table
 
 LocationID (Primary Key) | placeName | Address | Category  | Description | [ReviewInfo(ReviewText, [MediaID1, 2, 3,...])]
 
-Business Media DB
+Business Media Table
 
 MediaID (Primary Key) | LocationID | MediaURL | UserId
 
-Review DB
+Review Table
 
 ReviewID (Primary Key) | LocationID | UserId | Text | Rating
 
@@ -66,7 +70,7 @@ parameters: keyword, radius, category(optional), max_return(optional), sortMode(
 
 return: A JSON containing information about a list of popular places matching the search query. Each entry contains the place name, address, category, star rating and thumbnail image.
 
-Also for specific location/business, we have CRUD APIs:
+Also for specific location/business/places, we have CRUD APIs for them:
 
 GET /v1/businesses/:id
 
@@ -76,11 +80,11 @@ PUT /v1/businesses/:id
 
 DELETE /v1/businesses/:id
 
-### Function2: POST/add  DELETE/remove (to/from customers' favorite list)
+### Function2: POST /v1/favorite  DELETE /v1/favorite (to/from customers' favorite list)
 
 parameters: LocationID
 
-### Function3: POST/add (customer' reviews)
+### Function3: POST /v1/reviews (customer' reviews)
 
 parameters: LocationID, Rating, Review text(optional), media_urls(optional)
 
@@ -88,11 +92,17 @@ parameters: LocationID, Rating, Review text(optional), media_urls(optional)
 
 ### 1 Location-based Service
 
+Given a radius and location, return a list of nearby restaurants.
+
 Find the nearby businesses for a given radius and location with high QPS. Read heavy and no write. Also it is stateless and easy to scale horizontally.
 
 ### 2 Business Service
 
-Business owners create, update or delete a location. The QPS is not high.
+Business owners can add/delete/update location information.
+
+Customers view restaurant details.
+
+This QPS is not high.
 
 ## Basic System Design and Algorithm
 
@@ -120,11 +130,9 @@ We have 20 million grids and 500 million places. Since LocationID is 8 bytes, we
 
 ### QuadTree
 
-A tree which is commonly used to partition a 2-dimensional space by recursively subdividing it into 4 sub-grids. Therefore, each non-leaf node in the tree has 4 children nodes in order (up left, up right, down left, down right). Starting from the root node which represents the whole world, we keep splitting each node until there are no nodes left with > 100 locations.
+A tree which is commonly used to partition a 2-dimensional space by recursively subdividing it into 4 sub-grids. Therefore, each non-leaf node in the tree has 4 children nodes in order (up left, up right, down left, down right). Starting from the root node which represents the whole world, we keep splitting each node until there are no nodes left with > 100 locations. All information of places are stored in leaf nodes. This tree structure in which each node can have four children is called **QuadTree**.
 
-All information of places are stored in leaf nodes. (A node represents a grid with no more than 100 places, for example).
-
-Use double linked pointer to other leaf nodes and parent pointer to parent node, we can find neighboring grids of a given grid.
+For further use, we can use doubly linked list to connect neighbor's leaf nodes so that we can iterate forward or backward among the neighboring leaf nodes to find out our desired locations. Another approach is that we can keep a pointer to parent's node to know all its other children nodes.
 
 **QuadTree's Workflow**: Find the node that contains the user’s location:
 
@@ -134,13 +142,21 @@ Use double linked pointer to other leaf nodes and parent pointer to parent node,
 
 * If not, we will keep expanding to the neighboring nodes (either through the parent pointers or doubly linked list) until either we find enough required number of places within the maximum radius.
 
+**Calculation:**
+
+For each Place, if we cache only LocationID and Lat/Long: 24 *500M ~= 12 GB
+
+And internal nodes: 1Million grids *1/3* 4 pointers * 8bytes = 10 MB
+
+The total is about 12.01 GB which can be easily fit into a modern-day server.
+
 **Note:**
 
-The QuadTree is an **in-memory** data structure and it is not a database solution.
+The QuadTree is an **in-memory data structure** and it is not a database solution. It runs on each Location Based Service.
 
 Although the QuadTree index does not take much memory and can be fit in one server, we should use multiple servers to handle/spread the traffic.
 
-## GeoHash
+### GeoHash
 
 The basic idea is to reduce the two-dimensional longitude and latitude data into a one-dimensional string of letters and digits. It recursively divide the world into smaller and smaller places by adding additional bit.
 
@@ -182,7 +198,13 @@ Conclusion: GeoHash and QuadTree are preferred.
 
 ## Data Partition
 
-There are two tables: Business Table and Geo-spatial Index Table.
+There are two tables: Business Table and Geo-spatial Index Table. Also we need to discuss QuadTree first.
+
+### Quad Tree Partition
+
+Sharding based on Region: will bring hot region and possible unbalanced distribution of places data those two problems.
+
+Sharding based on LocationID: When we find places near a location, we have to query all servers and do aggregation operation from each server's results.
 
 ### Business Table
 
@@ -240,7 +262,9 @@ Least Recently Used (LRU) seems to be suitable in this case.
 
 ## Load Balancing
 
-Round Robin (distributed equally)
+We should add LB layer between clients and application servers since one machine can not handle such high QPS.
+
+Strategy: Round Robin (distributed equally)
 
 More intelligent LB can also take traffic/load/server status/latency as consideration by periodically querying backend server and then adjust the traffic volumes.
 
@@ -248,13 +272,17 @@ More intelligent LB can also take traffic/load/server status/latency as consider
 
 E.g. While searching for the top 100 places within a given radius, we can ask each partition of the QuadTree to return the top 100 places with maximum popularity. Then the aggregator server can determine the top 100 places among all the places returned by different partitions.
 
+Assuming the popularity of a place is not expected to reflect in high frequency like every hour, we can decide to update them once a day even once a few days.
+
 ## CDN
 
 A CDN is a system of globally distributed servers that deliver web content to a user based on the geographic locations of the user, the origin of the web page and a content delivery server. CDNs replicate content in multiple places. User can get the content from the nearest CDN.
 
 Push CDNs/Pull CDN
 
-Disadvantage: expensive/read stale data
+Disadvantage: expensive/read stale data.
+
+However, we do not use CDN in this Yelp/Proximity case design.
 
 ## Reference
 
