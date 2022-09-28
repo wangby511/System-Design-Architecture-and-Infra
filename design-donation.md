@@ -22,6 +22,8 @@ What if the [**Payment Attempt Service**] fails to tell [**Donation Service**] t
 
 Also owns a Payment Attempt DB according to [**Payment Attempt Service**]. Using a cron job to determine inconsistency.
 
+Leader node can fail and if that happens, one of the replicas will need to be promoted to be primary. Scenarios like split-brain should be prevented and replication lag should be monitored with metrics.
+
 ### Replicas
 
 ## Scaling
