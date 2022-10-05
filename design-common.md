@@ -88,7 +88,11 @@ Asynchronous: This is a more of a fire and forget approach. A service will fire 
 
 Usually we can follow a hybrid approach - use a synchronous approach for the mandatory steps and an asynchronous approach for the rest. E.g. put Inventory and Payment Services into sync part and put Warehouse and Notification Services into async part.
 
-## Common Component
+**Blue-Green Deployment** - A blue/green deployment is a deployment strategy in which you create two separate, but identical environments. One environment (blue) is running the current application version and one environment (green) is running the new application version.
+
+Blue/green deployments enable you to launch a new version (green) of your application alongside the old version (blue), and monitor and test the new version before you reroute traffic to it, rolling back on issue detection.
+
+## Common Components
 
 ### Proxy Server
 

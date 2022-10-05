@@ -194,7 +194,13 @@ It is still an in-memory solution. It maps a sphere to a ID index based on the H
 
 S2 is great for geofencing because it can cover arbitrary areas with varying levels.
 
-Conclusion: GeoHash and QuadTree are preferred.
+### Conclusion
+
+GeoHash and QuadTree are preferred.
+
+GeoHash - pros: Easy to implement. Updating the index is easy. cons: It can not dynamically adjust the grid size based on population density,
+
+Still go for **GeoHash** approach.
 
 ## Data Partition
 
@@ -210,7 +216,7 @@ Sharding based on LocationID: When we find places near a location, we have to qu
 
 For Business Table, we simply do sharding based on Location/Business ID base on the three options as below.
 
-1.**By regions** or zip-code
+1.**By regions or zip-code**
 
 Cons:
 
@@ -224,7 +230,7 @@ This could make a request querying too many shard servers.
 
  To find places near a location, we have to query all servers and each server will return a set of nearby places. A centralized server will aggregate these results to return them to the user. May not be efficient.
 
-3.By Geo-hash/Google S2
+3.**By Geo-hash/Google S2**
 
 To avoid the issue of hot shard, try to make that cells are continuous in one shard and adjust the number of cells in one shard by the number of places.
 
@@ -234,7 +240,9 @@ Geo-hash is widely adopted in the open source community (e.g. ElasticSearch, Mon
 
 <geohash, business_id> instead of <geohash, list_of_business_ids>
 
-It is small enough to fit in one server, unnecessary to shard. Scaling through replicas is recommended.
+500 million * (8 bytes per id + 8 bytes per geohash) = 8 GB
+
+**It can be fit in the working set of a modern database server. However, depending on the read volume, a single database server might not have enough CPU or network bandwidth to handle all read requests. So there is no strong reason to shard among multiple servers. A better approach is to have a series of read replicas to help with the read load.**
 
 ## Replication And Fault Tolerance
 
