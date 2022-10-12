@@ -167,6 +167,8 @@ It can be a single machine based on calculation. LRU strategy.
 
 Ban the malicious user temporarily if it makes requests too many times in a short period of time.
 
+Also we should do rate limit on the number of short url requets for a single user every day. If a user keep requesting the same long url, we can keep a cache and always return the same short url in a certain period of time.
+
 ## Expiry - Lazy Clean up
 
 ## ID Generator

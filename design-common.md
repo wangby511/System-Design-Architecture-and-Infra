@@ -202,13 +202,13 @@ We categorize validation errors, such as invalid input and states (for example, 
 
 Consistent hashing is a special kind of hashing algorithm such that when a hash table is re-sized and consistent hashing is used,only k/n keys need to be remapped on average, where k is the number of keys, and n is the number of slots.
 
-Using the same hash function like SHA-1, we map the keys and servers into a circular ring. To determine which server a key is stored on, we first calculate its hash and determine its position on the ring. Then we go clockwise from the key position on the ring until a server is found. Based on which node’s range it falls in, we will map the data to that node. Also, when a server is removed or added, only a small fraction of keys require re-distribution.
+Using the same hash function like SHA-1, we map the keys and servers into a circular ring. Hashes for data and nodes will all be independently calculated and adding or removing nodes won’t change these hashes. To determine which server a key is stored on, we first calculate its hash and determine its position on the ring. Then we go clockwise from the key position on the ring until a server is found. Based on which node’s range it falls in, we will map the data to that node. Also, when a server is removed or added, only a small fraction of keys require re-distribution.
 
 Benefits: 1) We do not need to move around all the data while adding or removing nodes. Only a minimal movement of data is needed. 2) We can have a nearly even distribution of data across all machines.
 
 ### Virtual Nodes (Vnode)
 
-To further achieve more uniform/balanced distribution, we introduce virtual nodes. A real server can have multiple virtual nodes. With virtual nodes, each server is responsible for multiple partitions.
+To further achieve more uniform/balanced distribution, we introduce virtual nodes. A real server can have multiple virtual nodes. With virtual nodes, each server is responsible for multiple partitions. The idea is similar to assign the same machine to multiple hashes and map each of these hashes on the number line.
 
 The hash range is divided into multiple smaller ranges, and each physical node is assigned multiple of these smaller ranges. Each of these sub-ranges is called a **Vnode**.
 
