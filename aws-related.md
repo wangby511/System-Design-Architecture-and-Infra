@@ -44,6 +44,24 @@ Choose SQS if:
 
 We can design fan-out pattern by using both SNS and SQS. In this pattern, a message published to an SNS topic is distributed to multiple SQS queues in parallel. SQS is mainly used to decouple applications. SNS distributes several copies of message to several subscribers.
 
+### Details About SQS
+
+There are two types of queues - Standard(Best effort ordering, At least once delivery) and FIFO(First in First Out ordering, Exactly once processing).
+
+In general, three things can happen to a “message” in the queue:
+
+* Received from a producer and ready to be sent to a consumer: these are "Messages Available".
+* Sent to a consumer and waiting for a response(*): these are "Messages in Flight".
+* Processed by a consumer (successfully) and deleted from the queue (successfully): these are deleted messages.
+
+The messages not processed by the consumer(s) will end up in the Dead Letter Queue (DLQ) after some retries.
+
+"Retention Period" of a message defines the time at which messages can live in the queue (if not deleted by a consumer or moved to DLQ). It should be between 1 minute and 14 days.
+
+"Visibility Timeout" is the maximum time a message may not be visible to the consumers. It is the period in which the message cannot be processed by any other consumer.
+
+"Delivery Delay" is another parameter you can set to delay the processing of messages appearing in your queue. 0 means no delay (default) and 15 mins is the max value we can configure.
+
 ## [2] Internet Gateway and NAT Gateway
 
 ### Internet Gateway (IGW)
