@@ -218,11 +218,29 @@ Advantages of Vnode: 1) spread the load more evenly. 2) make it easier to mainta
 
 Cons: 1) Minimized keys are re-distributed when servers are added or removed. 2) It is easy to scale horizontally because data are distributed more evenly.
 
+## Cache
+
+Cache is high-speed data access and storage layer that helps us fetch data that we had previously retrieved or computed. In this case, caching helps to reduce latency and improve resource utilization of servers.
+
+### Scenarios
+
+1) Cache the pre-calculated information for fast retrieval later on. 2) To reduce frequent database or network (API) calls.
+
+### Cache Eviction Strategies
+
+1) Time-based: TTL 2) Size-based: FIFO, LRU, LFU, LFRU (Least Frequently and Recently Used).
+
+### When NOT TO Cache?
+
+1) High Consistency requirements like a stock price display app. 2) Write heavy / Read Low. 3) Low repetition like trip cost estimation or estimated time arrival (floating easily).
+
 ## Content Delivery Network (CDN)
 
-A CDN is a system of distributed servers that deliver web content to a user based on the user’s geographic locations, the origin of the web page, and a content delivery server.
+A CDN is a network of servers around the world that delivers content in different geographical locations with reduced latency. If the server you are getting content from is closer to your geographic location, the content will take less time (reduced latency) to be delivered from the server to you.
 
-We can put more popular items like videos into CDN and leave those less popular items just into various data centers.
+We can put more popular items, like videos into CDN and leave those less popular items just into various data centers.
+
+Use case: Blob (Binary Large Object) storage is used in combination with CDN as a data store for images, videos, etc.
 
 ## Lambda Architecture
 

@@ -32,17 +32,17 @@ Data collection, data transmission, data storage, alerting and visualization.
 
 ## DB choice
 
-### Relation DB
+### Relation DB (Considered but Discarded)
 
 A general-purpose database, in theory, could support time-series data, but it would require expert-level tuning to make it work at our scale. Specifically, a relational database is not optimized for this solution. The complicated SQL is difficult to read.
 
-### NoSQL
+### NoSQL (Considered but Discarded)
 
 In theory, a few NoSQL databases on the market could handle time-series data effectively. Cassandra and BigTable can be both used for time series data. However, this would require deep knowledge to devise a scalable schema for effectively storing and querying time-series data.
 
-### Better Choice
+### Better Choice - Time Series Database
 
-**Time-series** databases are very commonly used for storing metrics data, like **InfluxDB and Prometheus**.
+**Time-series databases** are very commonly used for storing metrics data, like **InfluxDB and Prometheus**.
 
 According to DB-engines, the two most popular time-series databases are InfluxDB and Prometheus, which are designed to store large volumes of time-series data and quickly perform real-time analysis on that data. Both of them primarily rely on an in-memory cache and on-disk storage. And they both handle durability and performance quite well. According to the benchmark, an InfluxDB with 8 cores and 32GB RAM can handle over 250,000 writes per second.
 
