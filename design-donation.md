@@ -2,6 +2,24 @@
 
 CREATED 2022-09-20
 
+DoorDash VIRTUAL ONSITE INTERVIEW IN 2022-09-22
+
+SUMMARIZED 2022-11-07
+
+## Functional Requirements
+
+You are required to design a donation app for a 3 day charity event across the US where you are expecting 1 million donations.
+
+Other aspects need to be confirmed, like:
+
+Will the users need to login in (register an account before doing donation)?
+
+What’s the user experience if the payment fails or succeeds? Will they received email or notification after a few minutes? - Important! This is related to sync or async workflow.
+
+Can the user list/view/query their past donations?
+
+Need the total donation money number of an event be up-to-date (updated in time)?
+
 ## Infra
 
 The donation payment attempt and notification both happens asynchronously.
@@ -31,6 +49,10 @@ Leader node can fail and if that happens, one of the replicas will need to be pr
 Split the traffic into multiple nodes.
 
 DB partition - partition by directly userId or hash(userId), a range of hashes like consistent hashing.
+
+## The Simple Infra Graph I draw During Interview
+
+<img src="Infra-Graphs/2022-09-22-Doordash-Interview-Donation-System.png" width="800">
 
 ## Reference
 

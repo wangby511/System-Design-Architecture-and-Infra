@@ -24,19 +24,44 @@ According to Bondi et al., "Scalability is the capability of a system, network, 
 
 Solution: **Vertical scaling** - adding resources (memory, CPU, disk, etc.) to a single node and **Horizontal scaling** - adding more nodes to the system.
 
+E.g. data partition.
+
 ### Availability
 
 Availability is the percentage of time in a given period that a system is available to perform its task and function under normal conditions.
 
 Availability is the probability/percentage of time of a system to work as required, when required, during a mission. (If a system is reliable, it is available. However, if it is available, it is not necessarily reliable. E.g. if a system was launched without any information security testing.)
 
-Solution: **Redundancy** is one of the widely used mechanisms to achieve higher availability. It refers to storing data into multiple, redundant computers. E.g. Primary server ->(failover) Secondary server. Active data -> mirrored data (Data replication).
-
 ### Consistency
 
 Trade off between latency and consistency - After the data is written into primary node and a certain number of secondary/replica nodes(may be not all), the write request is considered successfully. Eventual consistency is implemented like this.
 
+### Redundancy
+
+Redundancy is the duplication of critical components or functions of a system to increase the reliability of the system. E.g. Primary server ->(failover) Secondary server. 
+
+E.g. data replication.
+
 ## Common Concepts
+
+**CAP Theorem** - Consistency, Availability and Partition tolerance.
+
+Consistency — all nodes see the same data at the same time. This means users can read or write from/to any node in the system and will receive the same data.
+
+Availability — a guarantee that every request receives a response about whether it was successful or failed. It refers to a system’s ability to remain accessible even if one or more nodes in the system go down.
+
+Partition tolerance — A partition is a communication break (or a network failure) between any two nodes in the system. A partition-tolerant system continues to operate even if there are partitions in the system. Data is sufficiently replicated across combinations of nodes and networks to keep the system up through intermittent outages.
+
+We cannot build a general data store that is continually available, sequentially consistent, and tolerant to any partition failures. Therefore, the theorem can really be stated as: **In the presence of a network partition, a distributed system must choose either Consistency or Availability.**
+
+**PACELC Theorem** - CAP, else(E), latency(L) and consistency(C).
+
+If there is a partition(P), a distributed system can tradeoff between availability(A) and consistency(C).
+
+Else(E), when the system is running normally in the absence of partitions, the system can tradeoff between latency(L) and consistency(C).
+
+Examples: Dynamo and Cassandra are PA/EL systems - They choose availability over consistency when a partition occurs; otherwise, they choose lower latency. BigTable and HBase are PC/EC systems - They will always choose consistency, giving up availability and lower latency.
+MongoDB can be considered PA/EC - In the case of a network partition, MongoDB chooses availability, but otherwise guarantees consistency.
 
 **SLA (Service-level Agreement)** - a contract between a service provider and a client. E.g. 99.9% availability.
 
@@ -68,9 +93,9 @@ c. Directory-Based Partitioning: Create a lookup service that records the curren
 
 We should avoid those two problems: 1) unbalanced data - The data distribution is not uniform. 2) hot key issue - There is a lot of load on a partition. In such cases, either we have to create more DB partitions or have to re-balance existing partitions.
 
-**Replication** - Replication means sharing information to ensure consistency between redundant resources to improve reliability, fault-tolerance, or accessibility.
+**Replication** - Replication means sharing information to ensure consistency between redundant resources to improve reliability, fault-tolerance, or accessibility. It is widely used in many database management systems(DBMS), usually with a primary-replica relationship between the original and the replica copies.
 
-**Microservice** - Break down the application into logical components such that these components become services of their own. So each team would work on the services that handle their features. These services will now be communicating with each other via a set of API calls like REST APIs or Remote Procedure Calls.
+**Micro Service** - Break down the application into logical components such that these components become services of their own. So each team would work on the services that handle their features. These services will now be communicating with each other via a set of API calls like REST APIs or Remote Procedure Calls.
 
 Benefits: Each team/system does one thing and does it well, without worrying about breaking another set of features. It is easier for developing independently, testing and scaling.
 
@@ -93,6 +118,38 @@ Usually we can follow a hybrid approach - use a synchronous approach for the man
 Blue/green deployments enable you to launch a new version (green) of your application alongside the old version (blue), and monitor and test the new version before you reroute traffic to it, rolling back on issue detection.
 
 ## Common Components
+
+### DNS - Domain Name System
+
+DNS is the Internet’s naming service that maps human-friendly domain names to machine-readable IP addresses. When a user enters a domain name in the browser, the browser has to translate the domain name to IP address by asking the DNS infrastructure. Once the desired IP address is obtained, the user’s request is forwarded to the destination web server.
+
+An A Record maps a hostname to one or more IP addresses, while the CNAME(Canonical Name record) record maps one domain name (an alias) to another (the canonical name). CNAME can be: from subdomain to parent domain, from subdomain to subdomain, from subdomain to other root domain, etc.
+
+```
+NAME TYPE VALUE
+----------------------------------------------------------------
+bar.example.com.            CNAME  foo.example.com.
+foo.example.com.            A      192.0.2.23
+
+When an A record lookup for bar.example.com is carried out, the resolver will see a CNAME record and restart the checking at foo.example.com and will then return 192.0.2.23.
+
+relay1.main.educative.io    A      104.18.2.119
+educative.io                CNAME  server1.primary.educative.io
+```
+
+DNS servers that respond to users’ queries are called **name servers**. DNS name servers are in a **hierarchical form**.
+
+There are two ways of performing a DNS query:
+
+1) Iterative: The local server requests the root, TLD, and the authoritative servers for the IP address. It is preferred because it can reduce query load on DNS infrastructure.
+
+2) Recursive: The end user requests the local server. The local server further requests the root DNS name servers. The root name servers forward the requests to other name servers.
+
+Caching can be implemented in all places, e.g. in the browser, operating systems, local name server within the user’s network, or the ISP’s DNS resolvers. Here it refers to the temporary storage of frequently requested resource records.
+
+The cached records at the default/local and ISP servers may be outdated. To mitigate this issue, each cached record comes with an expiration time called time-to-live (TTL).To maintain high availability, the TTL value should be small.
+
+Typically, DNS uses UDP. However, DNS can use TCP when its message size exceeds the original packet size of 512 Bytes. This is because large-size packets are more prone to be damaged in congested networks. DNS always uses TCP for zone transfers.
 
 ### Proxy Server
 
@@ -150,15 +207,31 @@ Steps of allocating more resources: 1) Apply for extra resources. 2) Extra resou
 
 ## Delivery Protocols
 
-**Long Polling** - Long polling is technique where the server elects to hold a client connection open for as long as possible, delivering a response only after data becomes available or timeout threshold has been reached. Therefore, Long Polling is **Half-Duplex** meaning that a new request-response cycle is required each time the client wants to communicate something to the server. However, it is more resource intensive and can come with a latency overhead. Also reliable message ordering can be an issue.
+### Long Polling
 
-**WebSocket** - A WebSocket connection is a thin transport layer built on top of a device’s TCP/IP stack. Suitable for bi-directional real-time communication. **Full-duplex** asynchronous messaging is supported so that both the client and the server can stream messages to each other independently. However, WebSockets don’t automatically recover when connections are terminated.
+Long polling is technique where the server elects to hold a client connection open for as long as possible, delivering a response only after data becomes available or timeout threshold has been reached. Therefore, Long Polling is **Half-Duplex** meaning that a new request-response cycle is required each time the client wants to communicate something to the server. However, it is more resource intensive and can come with a latency overhead. Also reliable message ordering can be an issue.
+
+### WebSocket
+
+WebSocket provides **Full duplex communication** channels over a single TCP connection. **Full-duplex** asynchronous messaging is supported so that both the client and the server can stream messages to each other independently. If the WebSocket handshake is established successfully, then the server and client can exchange data in both directions at any time. This two-way (bi-directional) ongoing conversation can take place between a client and a server. However, WebSockets don’t automatically recover when connections are terminated.
 
 How many WebSocket connection can a server handle? - By default, a single server can handle 65,536 socket connections just because it's the max number of TCP ports available. But the actual limit is often more like 20k.
 
 Use case: If the communication from the client is at a higher throughput, WebSocket may be a better option. If the communication can be driven by both client and server, WebSocket is the way to go. If the communication is always client-driven, WebSocket is not needed. Although here comes the tradeoff between cost and performance. E.g. It is optimized for high-frequency communication like chat App.
 
-**Server-Sent Events(SSE)** - Server-Sent Events are a one-way communication channel where events flow from server to client only. Server-Sent Events allows browser clients to receive a stream of events from a server over an HTTP connection without polling.
+### Server-Sent Events(SSE)
+
+Server-Sent Events are a one-way communication channel where events flow from server to client only. Server-Sent Events allows browser clients to receive a stream of events from a server over an HTTP connection without polling.
+
+Steps:
+
+1) Client requests data from a server using regular HTTP.
+
+2) The requested webpage opens a connection to the server.
+
+3) The server sends the data to the client whenever there’s new information available.
+
+SSEs are best when we need real-time traffic from the server to the client or if the server is generating data in a loop and will be sending multiple events to the client.
 
 ## Process vs Thread
 
@@ -182,9 +255,9 @@ Use case: If the communication from the client is at a higher throughput, WebSoc
 
 Reconciliation means comparing different sets of data in order to ensure data integrity.
 
-## Replication Related
+## Data Replication
 
-Data might be replicated among different database replicas to increase reliability.
+Data Replication is the process of making multiple copies of data and storing them on different servers. It improves the reliability and durability of the data across the system.
 
 If data is replicated, replication lag could cause inconsistent data between the primary database and the replicas.
 
@@ -206,17 +279,31 @@ Using the same hash function like SHA-1, we map the keys and servers into a circ
 
 Benefits: 1) We do not need to move around all the data while adding or removing nodes. Only a minimal movement of data is needed. 2) We can have a nearly even distribution of data across all machines.
 
-### Virtual Nodes (Vnode)
+However, this scheme can result in non-uniform data and load distribution. This problem can be solved with the help of Virtual nodes.
 
-To further achieve more uniform/balanced distribution, we introduce virtual nodes. A real server can have multiple virtual nodes. With virtual nodes, each server is responsible for multiple partitions. The idea is similar to assign the same machine to multiple hashes and map each of these hashes on the number line.
+### Virtual Node (Vnode)
+
+To further achieve more uniform/balanced distribution, we introduce **virtual node**s. A real server can have multiple virtual nodes. With virtual nodes, each server is responsible for multiple partitions. The idea is similar to assign the same machine to multiple hashes and map each of these hashes on the number line.
 
 The hash range is divided into multiple smaller ranges, and each physical node is assigned multiple of these smaller ranges. Each of these sub-ranges is called a **Vnode**.
 
 Practically, Vnodes are randomly distributed across the cluster and are generally non-contiguous so that no two neighboring Vnodes are assigned to the same physical node. Furthermore, nodes do carry replicas of other nodes for fault-tolerance.
 
-Advantages of Vnode: 1) spread the load more evenly. 2) make it easier to maintain a cluster containing heterogeneous machines. 3) probability of hot-spots is much less (than that we use big range per node).
+Advantages of Vnode: 1) spread the load more evenly. 2) make it easier to maintain a cluster containing heterogeneous machines. 3) probability of hot-spots decreases (than that we use big range per node).
 
 Cons: 1) Minimized keys are re-distributed when servers are added or removed. 2) It is easy to scale horizontally because data are distributed more evenly.
+
+### Replication in Consistent Hashing
+
+The replication factor (N) is the number of nodes that will receive the copy of the same data.
+
+Each key is assigned to a coordinator node (generally the first node that falls in the hash range), which first stores the data locally and then replicates it to N-1 clockwise successor nodes on the ring. This replication is done asynchronously in the background.
+
+In distributed systems, eventual consistency is used to achieve high availability.
+
+### Examples
+
+Amazon’s Dynamo and Apache Cassandra use Consistent Hashing to distribute and replicate data across nodes.
 
 ## Cache
 
@@ -271,3 +358,5 @@ The key difference is that Guice is dependency injection at runtime, while Dagge
 [5] <https://ably.com/blog/websockets-vs-long-polling>
 
 [6] <https://dev.to/kevburnsjr/websockets-vs-long-polling-3a0o>
+
+[7] <https://www.educative.io/courses/grokking-modern-system-design-interview-for-engineers-managers>

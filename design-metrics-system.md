@@ -1,10 +1,12 @@
 # System Design - Metrics Collecting System
 
-CREATED 2022/01/14 REVISITED 2022/05/24,31
+CREATED 2022/01/14
+
+REVISITED 2022/11/05
 
 ## Functional Requirements
 
-For internal use only. System/operational metrics like CPU load, memory usage, disk usage, request count etc. And also business metrics.
+For internal use only. System/operational metrics like latency, CPU usage, memory usage, disk usage, request count etc.
 
 The write load is heavy. As you can see, there can be many time-series data points written at any moment.
 
@@ -18,7 +20,7 @@ Low latency - low latency when querying in dashboard
 
 Reliability - avoid missing critical alerts
 
-Flexibility
+Flexibility - the pipeline should be flexible enough to integrate new technologies in the future
 
 ## Main Components
 
@@ -30,7 +32,9 @@ Data collection, data transmission, data storage, alerting and visualization.
 
 **time-series data points(list)** - a list of data points in a certain time of period, an array of <timestamp, value> pairs.
 
-## DB choice
+## Data Storage Choice
+
+This system is heavy write load, while the read load is light.
 
 ### Relation DB (Considered but Discarded)
 
@@ -48,7 +52,7 @@ According to DB-engines, the two most popular time-series databases are InfluxDB
 
 Another feature of a strong time-series database is efficient aggregation and analysis of a large amount of time-series data by labels(or tags).
 
-## Infra Graph
+## Infra Components
 
 [**Metrics Source**] -> [**Metrics Collector**] -> [**Kafka Queue**] -> [**Data Consumers**] [**Time Series DB**] <-> [**Query Services**] <- [**Alerting System**] & [**Visualization System**]
 
@@ -62,27 +66,39 @@ This can be application servers, SQL databases, message queues, etc.
 
 It gathers metrics data and writes data into the time-series database.
 
-1 Pull Mode - It needs to know the complete list of service endpoints to pull data from.
+**Pull Mode** - This needs to know the complete list of service endpoints to pull data from. Pull mode typically uses TCP.
 
-Service discovery contains configuration rules about when and where to collect metrics from. Use a consistent hashing ring to ensure that one metrics source server is handled by only one collector.
+Service discovery contains configuration rules about when and where to collect metrics from. Use a **consistent hashing** ring rule to ensure that one metrics source server is handled by only one metrics collector.
 
-Cons: It needs to poll for endpoint changes periodically. Some jobs might be short-lived and don't last long enough to be pulled.
+Steps:
 
-2 Push Mode - Send metrics directly to the metrics collector. The collection agent, installed on every server, aggregates metrics locally and sends them into metric collectors. They can hold a small buffer of data locally on disk if sending meets an error or exception.
+1) The metrics collector fetches configuration metadata of service endpoints from Service Discovery. That will give us information about which services we have to monitor.
+
+2) The metrics collector pulls metrics data via a pre-defined HTTP endpoint.
+
+How to scale: We can have multiple monitoring collectors pulling the data from various servers (This can follow the consistent hashing rule) and then they push the data to the data center monitoring system.
+
+Cons: It has to register a change event notification with Service Discovery to receive an update whenever the service endpoint changes. Also some jobs might be short-lived and don't last long enough to be pulled.
+
+**Push Mode** - Send metrics directly to the metrics collector. The collection agent, installed on every server, aggregates metrics locally and sends them into metric collectors. They can hold a small buffer of data locally on disk if sending meets an error or exception. Push mode typically use UDP, which means the push mode provides lower-latency transports of metrics.
 
 The metrics collector should be in an auto-scaling cluster with a load balancer in front of it.
 
-Cons: It needs requiring authentication.
+Cons: It needs requiring authentication. Suitable for some short-lived jobs.
 
-### Kafka (Optional)
+### Kafka (Optional, Better to have if using Push mode)
 
-Kafka is used as a highly **reliable and scalable** distributed messaging platform. It **decouples** the data collection and data processing services from each other. And it can easily prevent data loss.
+Kafka is used as a highly **reliable and scalable** distributed messaging platform.
 
-### Consumers (Optional)
+It **decouples** the data collection and data processing services from each other.
+
+It can easily prevent data loss by retaining the data in itself.
+
+Scale: We can configure the number of partitions and partition metrics data by metric names, or labels & tags.
+
+### Consumers
 
 Consumers or streaming processing services such as Apache Storm, Flink and Spark, process and push data to the time-series database.
-
-Optional - Use an intermediate queue: In case the Time Series DB is unavailable, we should introduce Kafka and Consumers in front of it. But this is not always required.
 
 ### Cache Layer (Optional)
 
@@ -96,7 +112,41 @@ This stores metrics data as time series. It usually provides a custom query inte
 
 A cluster of query servers which takes the requests from clients(visualization and alerting systems).
 
+### Altering System and Visualization System
+
+Send alert notifications and show metrics in the form of graphs/charts.
+
+Steps:
+
+1) The alert system fetches alert configs from the cache or config files.
+
+2) It calls the Query Service at a predefined interval. If the value violates the threshold, an alert event will be created. It also filters, merges and dedupe alerts.
+
+3) It saves the alert event into Alert Store, which is a key-value database, such as Cassandra. And it also records the status of all alert events.
+
+4) Alert event is inserted into Kafka.
+
+5) Consumers pull alert events from Kafka and send notifications to different channels.
+
+## Infra Graph
+
+Metrics System
+
+<img src="Infra-Graphs/metrics-system.jpg" width="800">
+
+Alerting System
+
+<img src="Infra-Graphs/alert-system.jpg" width="800">
+
 ## Others
+
+### When to do Aggregation
+
+* the collection agent installed on the client-side
+
+* ingestion pipeline - aggregate data before writing to the storage database
+
+* query side - Raw data can be aggregated over a given time period during query. The query time can be very slow!
 
 ### Down-sampling
 
@@ -106,17 +156,27 @@ Purpose: reduce the data size.
 
 ### Visualization
 
-Grafana is a visualization tool for time series data.
+Visualization is built on top of the data layer. E.g. Grafana is a visualization tool for time series data.
+
+A heat map is a data visualization technique that shows the magnitude of a phenomenon in two dimensions by using colors.
 
 ## Influx DB
 
 InfluxDB is an open-source time series database (TSDB) developed by the company InfluxData. It is written in the Go programming language for storage and retrieval of time series data in fields such as operations monitoring, application metrics, Internet of Things sensor data, and real-time analytics.
 
-## AresDB in Uber - https://eng.uber.com/aresdb/
+## AresDB in Uber - <https://eng.uber.com/aresdb/>
 
 TODO
 
-## More General - Ad Click Event Aggregation
+## Important points Summarize
+
+* Pull or Push model for collecting metrics data
+
+* Use Kafka to scale the system
+
+* Choose the right time-series database
+
+## Ad Click Event Aggregation
 
 Not only operational and business metrics, but also log files containing click events like (ad_id, timestamp, user_id, ip, location, etc).
 
@@ -159,3 +219,5 @@ Another option is to store data in Hive with an ElasticSearch layer built on it 
 [2] System Design Interview Book Volume II. Alex Xu. Chapter 5. Metrics Monitoring and Alerting System.
 
 [3] <https://en.wikipedia.org/wiki/InfluxDB>
+
+[4] <https://medium.com/analytics-vidhya/understanding-opentsdb-a-distributed-and-scalable-time-series-database-e4efc7a3dbb7>
