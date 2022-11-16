@@ -46,7 +46,9 @@ NoSQL: Most sacrifice ACID compliance for performance and scalability.
 
 We need to ensure ACID compliance like many e-commerce and financial applications.
 
-Our data is structured and unchanging.: Data is structured and unchanging in the long term.
+Our data is structured and unchanging: Data is structured and unchanging in the long term.
+
+If you need ACID properties, then you need to use a relational DBMS. Some examples are MySQL, Oracle, and Postgres.
 
 ### NoSQL database
 
@@ -56,25 +58,29 @@ Rapid development: Frequent updates to the data structure.
 
 Need Cloud-based storage / spread across multiple servers to scale up (horizontally scalable). (Make the most of cloud computing and storage. Cloud-based storage requires data to be easily spread across multiple servers to scale up.)
 
-### Most common types of NoSQL
+## Most common types of NoSQL
 
-#### Key-Value Stores
+### Key-Value Stores
 
 Data is stored in an array of key-value pairs.
+
 e.g. Redis, Voldemort and Dynamo
 
-#### Document Databases
+### Document Databases
 
 In these databases data is stored in documents. Each document can have an entirely different structure.
+
+Use case: If we have vast data and want to do query, not just volume but also a vast variety of attributes, and we need to run a vast variety of queries, we need to use something called a Document DB.
+
 e.g. CouchDB, MongoDB
 
-#### Wide-Column Databases
+### Wide-Column Databases
 
 A wide-column database is a type of NoSQL database in which the names and format of the columns can vary across rows, even within the same table. Wide-column databases are also known as column family databases. Because data is stored in columns, queries for a particular value in a column are very fast, as the entire column can be loaded and searched quickly. Related columns can be modeled as part of the same column family.
 
 e.g. Cassandra and HBase.
 
-#### Graph Databases
+### Graph Databases
 
 These databases are used to store data whose relations are best represented in a graph.
 e.g. Neo4J and InfiniteGraph.

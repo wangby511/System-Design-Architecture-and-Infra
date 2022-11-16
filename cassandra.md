@@ -1,8 +1,8 @@
 # Cassandra
 
-## Introduce
+## Introduction
 
-Apache Cassandra is an open-source, NoSQL, wide column data store that can quickly ingest and process massive amounts of data.
+Apache Cassandra is an open-source, NoSQL, wide column data store that can quickly ingest and process massive amounts of data. it is a distributed NoSQL Columnar DB.
 
 ## Write in Cassandra
 
@@ -38,13 +38,7 @@ Bloom Filters — helps to point if a key may exist in its corresponding SSTable
 
 3 SSTable returns the result of dataset and returns to the client.
 
-## CAP Theorem
-
-Consistency — all nodes see the same data at the same time.
-
-Availability — a guarantee that every request receives a response about whether it was successful or failed.
-
-Partition tolerance — the system continues to operate despite arbitrary message loss or failure of part of the system.
+## CAP Property
 
 Cassandra is an **AP** system meaning it’s more important to be available and partition tolerant.
 
