@@ -1,12 +1,28 @@
 # System Design - Web Crawler
 
-SET UP 2022/04/12 UPDATE 2022/04/20
+CREATED 2022/04/12
+
+LAST UPDATED 2022/11/17
+
+Keywords: multi-worker
+
+## Introduction
+
+A web crawler is an Internet bot that systematically scours the world wide web (WWW) for content, starting its operation from a pool of seed URLs. This process of acquiring content from the WWW is called crawling. It further saves the crawled content in the data stores. The process of efficiently saving data for subsequent use is called storing.
 
 ## Functional Requirements
 
-Use Case? Search engine index - A crawler collects web pages to create a local index for search engines. Search engines then can download all the pages to create an index on them to perform faster searches, like Reverse Index Service and Document Service. Another big use case  is copyright detection.
+Crawling - The system should scour the WWW, spanning from a queue of seed URLs.
 
-Number of Total? 15 billion pages per month.
+Storing - The system should be able to extract and store the content of a URL in a blob store.
+
+Scheduling - The system should have regular scheduling jobs to start crawling and storing.
+
+## Common Questions
+
+Use Case? Search engine index - A crawler collects web pages to create a local index for search engines. Search engines then can download all the pages to create an index on them to perform faster searches, like Reverse Index Service and Document Service. Another big use case is copyright detection.
+
+Number of Total? 15 billion web pages per month.
 
 Content type? HTML pages only. (Sound files, images and videos are not considered here)
 
@@ -18,13 +34,13 @@ Duplication? Duplicate pages should be ignored & discarded.
 
 ## Non-Functional Requirements
 
-Scalability - efficient for parallelization
+Scalability - distributed and multithreaded, efficient for parallelization
 
-Robustness
+Consistency
 
-Politeness
+Politeness - self-throttling and not crawling the same page during a certain amount of time
 
-Extensibility - new functionality could be added to it and there could be newer media types in the future.
+Extensibility - new functionality could be added to it and there could be newer media types in the future
 
 ## Estimation
 
@@ -38,27 +54,39 @@ A web page has the average size of 100KB and 500 Bytes of metadata. => 1.5 TB pe
 
 For 70% capacity model, we have 1.5 TB / 70% ~= 2.14 TB
 
-## Steps
+## Workflows
 
 The basic algorithm executed by any Web crawler is to take a list of seed URLs as its input and repeatedly execute the following steps.
 
-Pick a URL(Uniform Resource Locator) from the unvisited URL list.
+* Pick a URL(Uniform Resource Locator) from the URL frontier’s queue and assigns it to the available worker.
 
-Determine the IP Address of its host-name by using DNS.
+* Determine the IP Address of its host-name by using DNS resolver.
 
-Establish a connection to the host to download the corresponding document.
+* Establish a connection to the host to download the corresponding document.
 
-Parse the document contents.
+* Parse the document HTML content and do URLs extraction.
 
-Process the downloaded document, e.g., store it or index its contents, etc.
+* Do de-duplicate check to see if the same URLs have been crawled before (Use hashes or checksums). Also save the content into storage.
 
-Extract URLs and add the new URLs to the list of unvisited URLs.
+* Send the newly-discovered URLs to the scheduler.
 
-Go back to step one again.
+* Go back to step one again to do the cycle re-crawling until the URL frontier queue is empty.
 
-## Infra Components Flow Chart
+## Main Components
+
+Scheduler - used to schedule crawling events on the URLs that are stored in its database
+
+DNS Resolver - Map hostname to IP addresses for HTML content fetching
+
+Cache - used in storing fetched documents for quick access by all the processing modules
+
+Blob Storage - store the crawled content and visited URLs
+
+## Infra Graph
 
 ![image](https://roadtoarchitectcom.files.wordpress.com/2019/03/download.png)
+
+<img src="Infra-Graphs/crawler-system.jpg" width="800">
 
 [**Seed URLs**] -> [**URL Frontier**] -> [**HTML Downloader**] -> [**Content Parser**] -> [**Content Seen?**] ↓-> [**Content Storage**]
 
@@ -84,13 +112,15 @@ URL Seen/URL De-dup - checks if a URL is already stored. The URL Storage keeps t
 
 BFS - Breadth first search
 
-We have to deal with two problems
+We have to deal with two problems:
 
-Large volume of web pages - Download the same URL in parallel (avoid sending too many requests to the same hosting server in a short period of time, avoid making distributed denial-of-service (DDoS) attack), issue of lack of the priority/freshness.
+* Large volume of web pages - Download the same URL in parallel (avoid sending too many requests to the same hosting server in a short period of time, avoid making distributed denial-of-service (DDoS) attack), issue of lack of the priority/freshness.
 
-Rate of changes on web changes - By the time the crawler is downloading the last page from a site, the page may change.
+* Rate of changes on web changes - By the time the crawler is downloading the last page from a site, the page may change.
 
 ### Distributed Crawling/Data Partition
+
+What about the case of a distributed URL frontier?
 
 My idea:
 
@@ -104,9 +134,9 @@ Horizontal scaling - keep each servers/machines stateless.
 
 We can set a timeout threshold (a maximal wait time) and keep an exponential back-off retry mechanism. After all failed we can stop and abandon that URL.
 
-## Storage
+## Storage & Consistency
 
-The majority of URLs are stored in disk. We only maintain buffers in memory for recent queue/dequeue operations. The data in the buffer is periodically written to disk.
+Our system consists of several crawling workers. And our system computes **the checksums of URLs and documents** and compares them with the existing checksums of the URLs and documents respectively. Also the system stores the checksums into storage.
 
 ## Politeness & RobotsExclusion
 
@@ -122,9 +152,15 @@ Each host will perform **checkpoint** periodically and dump a **snapshot** of al
 
 How to handle new updates in the already crawled URL? Compare the content and set a threshold (10% content diff).
 
-DNS lookup can be a bottleneck and bandwidth should be kept enough to keep high throughput. We could start caching DNS results by building our own local DNS resolver.
+DNS Resolver - DNS lookup can be a bottleneck and bandwidth should be kept enough to keep high throughput. We could cache the DNS results by building our own local DNS resolver and maintaining our own DNS cache.
 
-Crawler Traps - A cycle of links cause a crawler to crawl infinitely.
+Crawler Traps - A cycle of links cause a crawler to crawl infinitely in a specific domain, resulting in indefinite crawler resource exhaustion. Solutions for that: 1) Analyze the URL schemas. 2) Analyze the total number of web pages against a domain. If the crawling reaches the number of limit, stop crawling that domain and exit that web page.
+
+How frequently does the crawler need to re-crawl? Do predictive analysis of the previous content changes. Like every 5 minutes for news websites.
+
+Can we use DFS instead of BFS? - We can use DFS when we want to utilize a website’s persistent connection to traverse all the web pages on that specific domain. This saves time as it helps us avoid reconnecting with the same website repeatedly in case the session expires.
+
+Extensibility - Adding a newer communication protocol module in the HTML fetcher (e.g. File Transfer Protocol (FTP) besides HTTP). Also we can extend to store the newly-extracted content including images and videos besides text.
 
 ## Reference
 
@@ -133,3 +169,5 @@ Crawler Traps - A cycle of links cause a crawler to crawl infinitely.
 [2] <https://roadtoarchitect.com/2019/04/01/design-web-crawler/>
 
 [3] [如何设计网络爬虫系统？How to Design Web Crawler - System Design EP3 花花酱](https://www.youtube.com/watch?v=_NyVaxEIYGo)
+
+[4] Design of a Web Crawler <https://www.educative.io/courses/grokking-modern-system-design-interview-for-engineers-managers>
