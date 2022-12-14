@@ -16,11 +16,15 @@ The difficulty is how to sync data between data centers and how to make trade of
 
 QPS 12000/s
 
-3% bad IP 600/s
+5% bad IP 600/s
 
 ## Components
 
-### Bloom Filter
+Bloom Filter: Bloom Filter can not be used here since a good IP address can be treated as a malicious IP due to some possibility.
+
+Primary-secondary system: 4 billion IPs -> malicious are 4 billion x 5% = 200 million.
+
+200 million x 4 Bytes/IP = 800MB which can be fit in one modern server. So we can write to primary machine and let the secondary machines syncing from it. Also to avoid single point of failure, we may add another backup primary machine by configuring a stand-by machine.
 
 ### Blacklist Cache/DB
 
