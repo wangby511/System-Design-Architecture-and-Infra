@@ -31,3 +31,5 @@ Primary-secondary system: 4 billion IPs -> malicious are 4 billion x 5% = 200 mi
 ## Reference
 
 [1] <https://instant.1point3acres.com/thread/829894>
+
+[2] <https://gist.github.com/yinliu1616/fc4ea26d020c431e54984d4a39a21475#file-distributed-ip-block-system-md>
