@@ -15,3 +15,11 @@
 [Linkedin Blog Engineering](https://engineering.linkedin.com/blog)
 
 [Facebook Engineering](https://engineering.fb.com/)
+
+## TO MY 2022
+
+To myself:
+
+Thank you for all the hard work in 2022! You deserver the final successful result!
+
+Let's fly to 2023!

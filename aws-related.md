@@ -48,7 +48,7 @@ We can design fan-out pattern by using both SNS and SQS. In this pattern, a mess
 
 There are two types of queues - Standard(Best effort ordering, At least once delivery) and FIFO(First in First Out ordering, Exactly once processing).
 
-In general, three things can happen to a “message” in the queue:
+In general, three things can happen to a "message" in the queue:
 
 * Received from a producer and ready to be sent to a consumer: these are "Messages Available".
 * Sent to a consumer and waiting for a response(*): these are "Messages in Flight".
