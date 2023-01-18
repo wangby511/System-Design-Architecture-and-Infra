@@ -90,6 +90,12 @@ NAT Gateway allows instances with no public IPs to access the internet, but only
 
 **Worker** — A secure environment for customers to execute their code in. Workers are typically EC2 instances that have multiple functions being executed on them and these functions are owned by multiple users. **Sandbox** is totally isolated from other sandboxes using things such as cgroups, namespaces, iptables, etc. Sandboxes can be **re-used** for another invocation of the same function (what we’d call “warm”) but a sandbox will never be shared between different Lambda functions. These sandboxes have a lifespan of the function execution and are then destroyed.
 
+## [4] AWS ECS
+
+Amazon Elastic Container Service (ECS) is a highly scalable and fast container management／orchestration service. You can use it to run, stop, and manage containers on a cluster. With Amazon ECS, your containers are defined in a task definition.
+
+An Amazon ECS container instance is an Amazon EC2 instance that is running the Amazon ECS container agent and has been registered into an Amazon ECS cluster.
+
 ## Reference
 
 [1] <https://medium.com/awesome-cloud/aws-difference-between-sqs-and-sns-61a397bf76c5>
