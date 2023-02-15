@@ -121,7 +121,7 @@ Blue/green deployments enable you to launch a new version (green) of your applic
 
 ### DNS - Domain Name System
 
-DNS is the Internet’s naming service that maps human-friendly domain names to machine-readable IP addresses. When a user enters a domain name in the browser, the browser has to translate the domain name to IP address by asking the DNS infrastructure. Once the desired IP address is obtained, the user’s request is forwarded to the destination web server.
+DNS is the Internet’s naming service that **maps human-friendly domain names to machine-readable IP addresses. This IP address will take the users to the specified proxy server.** When a user enters a domain name in the browser, the browser has to translate the domain name to IP address by asking the DNS infrastructure. Once the desired IP address is obtained, the user’s request is forwarded to the destination web server.
 
 An A Record maps a hostname to one or more IP addresses, while the CNAME(Canonical Name record) record maps one domain name (an alias) to another (the canonical name). CNAME can be: from subdomain to parent domain, from subdomain to subdomain, from subdomain to other root domain, etc.
 
@@ -173,7 +173,7 @@ Health Checks - "health check" regularly attempts to connect to backend servers 
 
 The load balancer can be **A single point of failure**. To overcome this, we should have **a second, standby load balancer** which can take over the first failure one in the event the main load balancer fails. This is called [mirrored pair](https://www.loadbalancer.org/blog/easiest-way-to-reduce-downtime-avoiding-a-single-point-of-failure/) which gives us an extra layer of **redundancy** and protection against downtime. Or we call `active and passive`.
 
-Difference with API Gateway: An API gateway connects micro-services or different API calls, while load balancers redirect multiple instances of the same microservice components or the same API call as they scale out to different machines.
+Difference with API Gateway: An API gateway connects micro-services or different API calls, it also handle all of the interpretations and protocols that occur between various pieces of software. While load balancers redirect multiple instances of the same microservice components or the same API call as they scale out to different machines.
 
 ### Message Queues
 
@@ -233,9 +233,13 @@ Steps:
 
 SSEs are best when we need real-time traffic from the server to the client or if the server is generating data in a loop and will be sending multiple events to the client.
 
-## Process vs Thread
+## Program, Process & Thread
 
-* Processes are independent and contain their own state information. Threads run within a process and share the same state and memory space
+* Program is an executable file containing a set of instructions and passively stored on disk. The program is loaded into memory and it can have multiple processes.
+
+* Process means a program is in execution. Processes are independent and contain their own state information.
+
+* Thread is the smallest unit of execution with a process. A process can have one or more threads. Threads which belong to the same process share the same state and memory space.
 
 * Processes have to communicate with each other using inter-process communication mechanisms. Threads communicate directly because they share the same variables.
 
@@ -345,6 +349,10 @@ The key difference is that Guice is dependency injection at runtime, while Dagge
 
 ![img](https://databricks.com/wp-content/uploads/2018/12/hadoop-architecture.jpg)
 
+### CI-CD pipeline
+
+A CI/CD pipeline is a tool that automates the process of building, testing, and deploying software. It integrates the different stages of the software development lifecycle, including code creation and revision, testing, and deployment, into a single, cohesive workflow.
+
 ## Reference
 
 [1] <https://medium.com/geekculture/cracking-the-system-design-interview-theory-basics-c57f5326181b>
@@ -360,3 +368,5 @@ The key difference is that Guice is dependency injection at runtime, while Dagge
 [6] <https://dev.to/kevburnsjr/websockets-vs-long-polling-3a0o>
 
 [7] <https://www.educative.io/courses/grokking-modern-system-design-interview-for-engineers-managers>
+
+[8] <https://blog.bytebytego.com/p/ep-38-where-do-we-cache-data>

@@ -96,6 +96,12 @@ Amazon Elastic Container Service (ECS) is a highly scalable and fast container m
 
 An Amazon ECS container instance is an Amazon EC2 instance that is running the Amazon ECS container agent and has been registered into an Amazon ECS cluster.
 
+## [5] Availability Zones
+
+AWS services have been using Availability Zones for years to build highly available, fault tolerant, and scalable applications. Most services have spread multiple independent replicas of their services across multiple Availability Zones.
+
+Each replica is called a zonal replica. The system is designed so that any of the replicas can fail at any time. When a replica fails, it can be temporarily removed from the system until everything works as expected again.
+
 ## Reference
 
 [1] <https://medium.com/awesome-cloud/aws-difference-between-sqs-and-sns-61a397bf76c5>
@@ -103,3 +109,5 @@ An Amazon ECS container instance is an Amazon EC2 instance that is running the A
 [2] <https://medium.com/awesome-cloud/aws-vpc-difference-between-internet-gateway-and-nat-gateway-c9177e710af6>
 
 [3] <https://matthewleak.medium.com/aws-lambda-under-the-hood-how-lambda-works-43efba14d899>
+
+[4] <https://aws.amazon.com/blogs/compute/aws-lambda-resilience-under-the-hood/>
