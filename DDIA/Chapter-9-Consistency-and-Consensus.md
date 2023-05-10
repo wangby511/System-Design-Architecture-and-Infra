@@ -4,6 +4,8 @@ CREATED 2022/02/05
 
 Consensus - get all of the nodes to agree on something.
 
+Distributed consistency is mainly about coordinating the state of replicas in the face of delays and faults.
+
 ## Consistency Guarantees
 
 Convergence - eventually consistency. If you write a value to a database and wait for some time, then all the nodes will return the same value when the read request comes afterwards.
@@ -11,9 +13,11 @@ Convergence - eventually consistency. If you write a value to a database and wai
 最终一致性（eventual consistency）：如果停止更新数据，等待一段时间（时间长度未知），则最终所有读请求将返回相同的内容。
 然而最终一致性是一种非常弱的一致性保证，因为无法知道何时（when）系统会收敛。而在收敛之前，读请求都可能返回任何值。
 
+Trade off - Systems with stronger guarantees may have worse performance but they are easy to use correctly.
+
 ## Linearizability - 可线性化
 
-**Linearizability** - also called atomic consistency, strong consistency. It makes a system look like it has one copy of the data even through there are maybe multiple replicas behind it in reality.
+**Linearizability** - also called **atomic consistency, strong consistency**. It makes a system look like it has **one copy of the data** even through there are maybe multiple replicas behind it in reality.
 
 可线性化(Linearizability)，也被称为原子一致性（atomic consistency）、强一致性（strong consistency），可线性化的基本思想是让一个系统看起来好像只有一个数据副本，而且所有的操作都是原子的，有了这个保证，应用程序就不需要关心系统内部的多个副本。
 
@@ -21,9 +25,11 @@ Convergence - eventually consistency. If you write a value to a database and wai
 
 There must be some point in time (between the start and end of the write operation) at which the value of x automatically flips from 0 to 1 for example. If one client's read returns 1 (the new value), then all subsequent reads must also return the new value. We should not see a value flip back and forth several times.
 
+That means after one read has returned the new value, all following reads (on the same or other clients) must also return the new value. Once a new value has been written or read, all subsequent reads see the value that was written, until it is overwritten again[Book page 327 & 328].
+
 Image a vertical line at the time when the operation(read, write or cas) is executed. E.g. CAS(compare-and-set) operation.
 
-CAS(x, old, new)：表示一次原子的比较-设置操作（compare-and-set，简称CAS），如果此时x的值为old，则原子设置这个值为new；否则保留原有值不变
+CAS(x, old, new)：表示一次原子的比较-设置操作（compare-and-set，简称CAS），如果此时x的值为old，则原子设置这个值为new；否则保留原有值不变，不进行任何操作。
 
 ![img](https://cdn.jsdelivr.net/gh/lichuang/lichuang.github.io/media/imgs/20190406-ddia-chapter09-consistency-and-consensus/9-4.jpg)
 
@@ -47,15 +53,15 @@ Constraints and uniqueness guarantees - E.g. a username is unique. It requires a
 
 Cross-channel timing dependencies - The violation problem arises because there are additional or multiple different communication channels.
 
-### Implementing
+### Implementing (Linearizable Systems)
 
 1 Single-leader replication - potentially linearizable.
 
-2 Consensus algorithms - contain measures to prevent split brain and stale replicas. E.g. Zookeeper.
+2 Consensus algorithms - contain measures to prevent split brain and stale replicas. E.g. Zookeeper, etcd.
 
 3 Multi-leader replication - not linearizable.
 
-3 Leaderless replication - probably not linearizable.
+4 Leaderless replication - probably not linearizable. E.g. Systems with Dynamo-style replication does not provide linearizability.
 
 ### The Cost
 
@@ -73,7 +79,7 @@ CAP定理，表示一致性、可用性、分区容错性，三者之间只能�
 
 ### Trade-off
 
-Every CPU core has its own cache and store buffer to increase performance and meanwhile, it drops linearizability.
+E.g. Every CPU core has its own cache and store buffer to increase performance and meanwhile, it drops linearizability.
 
 Linearizability is slow and not suitable for latency-sensitive systems. Weaker consistency models can be much faster.
 
@@ -83,11 +89,11 @@ Linearizability is slow and not suitable for latency-sensitive systems. Weaker c
 
 Causality - Causes come before effects.
 
-* Casual dependency.
+* Casual dependency between a question and its answer.
 
 * A row must be created before it can be updated.
 
-* No casual line between two concurrent things.
+* No casual line between two concurrent things. E.g. whether operations A and B are related.
 
 * Read skew means reading data in a state that violates causality.
 
@@ -97,23 +103,25 @@ Causality - Causes come before effects.
 
 If a system obeys the ordering imposed by causality, then it is **causally consistent**, like snapshot isolation.
 
-Linearizability implies causality.
+Linearizability implies causality - Any system that is linearizable will preserve causality correctly.
+
+To maintain causality, we need to know which operation happened before which other operation. 知道谁先谁后。If some preceding operation is missing, the later operation must wait until the preceding one is finished.
 
 ### Sequence Number Ordering
 
-It can come from a logical clock, an algorithm to generate a sequence of numbers to identify operations, instead of a time-of-day clock. So we can create sequence numbers in a total order that is consistent with causality, especially for the single-leader replication mode. However, multi-leader or leaderless database can not guarantee consistent causality.
+It can come from a **logical clock**, an algorithm to generate a sequence of numbers to identify operations, instead of a time-of-day clock. So we can create sequence numbers in a **total order** that is consistent with causality, especially for the single-leader replication mode. However, multi-leader or leaderless database can not guarantee consistent causality.
 
-In a database with single-leader replication, the replication log defines a total order of write operations that is consistent with causality. The leader can simply increment a counter for each operation and then assign a monotonically sequence number to each operation in the replication log. We can guarantee that the state of the followers is always consistent.
+In a database with single-leader replication, the **replication log** defines a total order of write operations that is consistent with causality. The leader can simply increment a counter for each operation and then assign **a monotonically sequence number** to each operation in the replication log. We can guarantee that the state of the followers is always consistent.
 
 在主从复制数据库中，复制日志定义了与因果关系一致的写操作全序关系。主节点可以简单地为每个操作递增某个计数器，从而为复制日志中的每个操作赋值一个单调递增的序列号。从节点按照复制日志的顺序来写，结果一定满足因果一致性。
 
-**Lamport timestamp** - (counter, nodeId) provides a total ordering consistent with causality.
+For multi-leader or leaderless database, the sequence numbers are still not consistent with causality when we are using sequence number generators due to: one node lag behind, clock skew, etc.
 
-Cons: We know the total order of operations **only after** we have collected all the operations so we can not make a right-now decision. (E.g. create a unique username.)
+**Lamport timestamp** - a pair of (counter, nodeId) provides a total ordering consistent with causality. Cons: We can not tell whether two operations are concurrent or whether they are causally dependent.
 
 每个节点都有一个唯一的标识符，且每个节点都有一个计数器来记录各自已处理的请求总数。Lamport时间戳是一个值对（计数器，节点ID）。两个节点可能会有相同的计数器值，但时间戳中还包含节点ID信息，因此可以确保每个时间戳都是唯一的。
 
-In order to implement something like a uniqueness constraint for user names, we have to both maintain a total ordering of operations and also know when that order is finalized.
+E.g. In order to implement something like a uniqueness constraint for **user name**. We can only know the total order of operations **only after** we have checked all other nodes and collected all the operations. Therefore, we can not make a right-now decision. We have to both maintain a total ordering of operations and also know when that order is finalized.
 
 ### Total Order Broadcast - 全序关系广播
 

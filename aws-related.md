@@ -2,6 +2,8 @@
 
 CREATED 2022/08/13
 
+UPDATED 2023/03/11
+
 ## [1] SNS And SQS
 
 ### Key Differences
@@ -32,7 +34,7 @@ Choose SNS if:
 
 * You would like to allow same message to be processed in multiple ways.
 
-* Multiple subscribers are needed.
+* Multiple subscribers are needed. (When multiple consumers need notifying, and a push message is required. When the message needs publishing to a variety of consumers.)
 
 Choose SQS if:
 
@@ -40,11 +42,13 @@ Choose SQS if:
 
 * Decoupling two applications and allowing parallel asynchronous processing.
 
-* Only one subscriber is needed.
+* Only one subscriber is needed. (When a message only needs to be processed by a known consumer.)
 
 We can design fan-out pattern by using both SNS and SQS. In this pattern, a message published to an SNS topic is distributed to multiple SQS queues in parallel. SQS is mainly used to decouple applications. SNS distributes several copies of message to several subscribers.
 
 ### Details About SQS
+
+AWS Simple Queue Service (SQS) offers a robust, highly scalable serverless hosted queue for storing messages and delivering data between application components.
 
 There are two types of queues - Standard(Best effort ordering, At least once delivery) and FIFO(First in First Out ordering, Exactly once processing).
 
@@ -62,7 +66,13 @@ The messages not processed by the consumer(s) will end up in the Dead Letter Que
 
 "Delivery Delay" is another parameter you can set to delay the processing of messages appearing in your queue. 0 means no delay (default) and 15 mins is the max value we can configure.
 
-## [2] Internet Gateway and NAT Gateway
+## [2] Kinesis
+
+AWS Kinesis Streams offers large-scale data input and real-time streaming data processing. It is a **highly scalable** service to collect and process large streams of data records in real time. It is the best option for sending a **high volume** of messages, like website or application click stream, transactions log, tracking events – everything requiring a high throughput. And it is also the best option for **stream data analytics**.
+
+A Kinesis data stream is a set of shards. Each shard has a sequence of data records. In each individual shard, the ordering of data records is maintained by sequence number assigned to each record. However, ordering is not maintained across shards. So it is required to have a well-thought-out partition key to avoid hot & cold shards.
+
+## [3] Internet Gateway and NAT Gateway
 
 ### Internet Gateway (IGW)
 
@@ -78,7 +88,7 @@ NAT Gateway allows instances with no public IPs to access the internet, but only
 
 * Private NAT Gateway – Instances in private subnets can connect to other VPCs or your on-premises network through a private NAT gateway.
 
-## [3] AWS Lambda Sandbox
+## [4] AWS Lambda Sandbox
 
 ### Components
 
@@ -90,13 +100,21 @@ NAT Gateway allows instances with no public IPs to access the internet, but only
 
 **Worker** — A secure environment for customers to execute their code in. Workers are typically EC2 instances that have multiple functions being executed on them and these functions are owned by multiple users. **Sandbox** is totally isolated from other sandboxes using things such as cgroups, namespaces, iptables, etc. Sandboxes can be **re-used** for another invocation of the same function (what we’d call “warm”) but a sandbox will never be shared between different Lambda functions. These sandboxes have a lifespan of the function execution and are then destroyed.
 
-## [4] AWS ECS
+## [5] AWS ECS
 
 Amazon Elastic Container Service (ECS) is a highly scalable and fast container management／orchestration service. You can use it to run, stop, and manage containers on a cluster. With Amazon ECS, your containers are defined in a task definition.
 
 An Amazon ECS container instance is an Amazon EC2 instance that is running the Amazon ECS container agent and has been registered into an Amazon ECS cluster.
 
-## [5] Availability Zones
+### Fargate
+
+AWS Fargate is a serverless option. With AWS Fargate, you don't need to manage servers, handle capacity planning, or isolate container workloads for security.
+
+Fargate handles the infrastructure management aspects of your workload for you.
+
+## [6] AWS EC2
+
+### Availability Zones
 
 AWS services have been using Availability Zones for years to build highly available, fault tolerant, and scalable applications. Most services have spread multiple independent replicas of their services across multiple Availability Zones.
 
@@ -111,3 +129,9 @@ Each replica is called a zonal replica. The system is designed so that any of th
 [3] <https://matthewleak.medium.com/aws-lambda-under-the-hood-how-lambda-works-43efba14d899>
 
 [4] <https://aws.amazon.com/blogs/compute/aws-lambda-resilience-under-the-hood/>
+
+[5] <https://betterdev.blog/decision-tree-sqs-sns-kinesis-eventbridge/>
+
+[6] <https://medium.com/lego-engineering/resolving-bottlenecks-of-lambda-triggered-by-kinesis-part-1-data-stream-capacity-41979a64cf49>
+
+[7] <https://medium.com/@knoldus/data-streaming-with-aws-kinesis-8183ca2e600d>
